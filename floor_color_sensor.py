@@ -13,7 +13,6 @@ class FloorColorSensor:
         # If robot is within the safe zone. This is a square in the middle of the environment
         is_within_safe_zone = Point(robot_pose.x, robot_pose.y).within(environment.safe_zone_rect)
 
-        print(is_within_safe_zone)
         if is_within_safe_zone:
             self.color = SILVER_SAFE_ZONE
             return
