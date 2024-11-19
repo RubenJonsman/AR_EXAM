@@ -25,7 +25,7 @@ IP address:
 
 Todo:
 - Robot
-    - Robot LED (What state it is in)
+    [x] Robot LED (What state it is in)
     - Robot InfraRed communication
     - Robot detect safe-zone
     - Robot detect other robots
