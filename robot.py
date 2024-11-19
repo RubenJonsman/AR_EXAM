@@ -107,11 +107,6 @@ class DifferentialDriveRobot:
     #Exercise 6.1 make the robot explore the environment. 
     #Exercise 6.2 make the robot avoid the walls using lidar sensor data
     def explore_environment(self, lidar_scans):
-     
-        if len(lidar_scans) < 60:
-            print("no data from lidar yet")
-            return
-
         front_sensor = lidar_scans[0]
         front_right_sensor_1 = lidar_scans[len(lidar_scans)//8]
         right_sensor = lidar_scans[len(lidar_scans)//4]
@@ -119,7 +114,7 @@ class DifferentialDriveRobot:
         left_sensor = lidar_scans[len(lidar_scans)//4 * 3]
         #Exercise 6.1 modify this to control the robot
         #Exercise 6.2 use your exploration algorithm from previous exercise if you have it.
-        wallDistance = 40
+        wallDistance = 200
         speed = 1000
         if left_sensor < wallDistance and front_left_sensor_1 < wallDistance:
             self.set_motor_speeds(speed,0)

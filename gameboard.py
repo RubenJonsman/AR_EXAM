@@ -17,8 +17,6 @@ class GameBoard:
 
     # Initialize lidar and robot
     self.robot = DifferentialDriveRobot(WIDTH/2, HEIGHT/2, 2.6, 'thymio_small.png')
-    # Create a Lidar sensor with 60 beams and a max distance of 500 units
-    self.max_lidar_beam_distance = 500
     self.lidar = LidarSensor()
 
     # For potential visualization
@@ -52,8 +50,8 @@ class GameBoard:
       # Generate Lidar scans - for these exercises, you will be given these.
       lidar_scans, _intersect_points = self.lidar.generate_scans(robot_pose, self.env.get_environment())
 
-
       # EXERCISE 6.1: make the robot move and navigate the environment based on our current sensor information and our current map.
+      
       self.robot.explore_environment(lidar_scans)
 
       if self.USE_VISUALIZATION:

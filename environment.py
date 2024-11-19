@@ -7,6 +7,7 @@ class Environment:
         self.width = width
         self.height = height
         self.walls = []
+        self.safeZone = []
         self.padding = 50
         self.safeZoneSize = 50
         self.create_floorplan()
@@ -19,14 +20,15 @@ class Environment:
         bottom_wall = LineString([(0+self.padding, self.height-self.padding), (self.width-self.padding, self.height-self.padding)])
         right_wall = LineString([(self.width - self.padding, self.height-self.padding), (self.width-self.padding, 0+self.padding)])
         top_wall = LineString([(self.width-self.padding, 0+self.padding), (0+self.padding, 0+self.padding)])
+        self.walls = [left_wall,bottom_wall,right_wall,top_wall]
         
         # create a safe zone in the middle
         safe_zone_left_wall = LineString([(self.width/2 - self.safeZoneSize/2, self.height/2 - self.safeZoneSize/2), (self.width/2 - self.safeZoneSize/2, self.height/2 + self.safeZoneSize/2)])
         safe_zone_bottom_wall = LineString([(self.width/2 - self.safeZoneSize/2, self.height/2 + self.safeZoneSize/2), (self.width/2 + self.safeZoneSize/2, self.height/2 + self.safeZoneSize/2)])
         safe_zone_right_wall = LineString([(self.width/2 + self.safeZoneSize/2, self.height/2 + self.safeZoneSize/2), (self.width/2 + self.safeZoneSize/2, self.height/2 - self.safeZoneSize/2)])
         safe_zone_top_wall = LineString([(self.width/2 + self.safeZoneSize/2, self.height/2 - self.safeZoneSize/2), (self.width/2 - self.safeZoneSize/2, self.height/2 - self.safeZoneSize/2)])
+        self.safeZone = [safe_zone_left_wall,safe_zone_bottom_wall,safe_zone_right_wall,safe_zone_top_wall]
 
-        self.walls = [left_wall,bottom_wall,right_wall,top_wall, safe_zone_left_wall, safe_zone_bottom_wall, safe_zone_right_wall, safe_zone_top_wall]
     def get_environment(self):
         return self.walls
     
@@ -39,6 +41,9 @@ class Environment:
         # Draw the walls
         for wall in self.walls:
             pygame.draw.line(screen,(255,0,0),(int(wall.xy[0][0]),int(wall.xy[1][0])),(int(wall.xy[0][1]),int(wall.xy[1][1])),4)# (screen, (255, 0, 0), False, wall.xy, 4)
+        
+        for wall in self.safeZone:
+            pygame.draw.line(screen,(0,255,0),(int(wall.xy[0][0]),int(wall.xy[1][0])),(int(wall.xy[0][1]),int(wall.xy[1][1])),4)
 
 
 
