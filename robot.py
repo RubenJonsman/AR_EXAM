@@ -95,7 +95,7 @@ class DifferentialDriveRobot:
 
         # Draw the heading line
         color =  STATE_COLOR_MAP[self.type, self.state]
-        pygame.draw.line(surface, color, (self.x, self.y), (heading_x, heading_y), 3)
+        pygame.draw.line(surface, color, (self.x, self.y), (heading_x, heading_y), 4)
 
 
     def getMotorspeeds(self):
