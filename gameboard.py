@@ -49,6 +49,9 @@ class GameBoard:
         if event.type == QUIT:
           running = False
 
+      keys = pygame.key.get_pressed()
+      self.robot.manual_control(keys)
+
       # Calculate timestep
       time_step = (pygame.time.get_ticks() - self.last_time) / 1000
       self.last_time = pygame.time.get_ticks()
@@ -62,7 +65,7 @@ class GameBoard:
 
       # EXERCISE 6.1: make the robot move and navigate the environment based on our current sensor information and our current map.
       
-      self.robot.explore_environment(lidar_scans)
+      # self.robot.explore_environment(lidar_scans)
 
       if self.USE_VISUALIZATION:
         self.screen.fill((0, 0, 0))

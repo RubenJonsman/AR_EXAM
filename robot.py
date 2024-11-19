@@ -3,7 +3,7 @@ import pygame
 import math
 import random
 import numpy as np
-from constants import AVOIDER, SEEKER
+from constants import STATE_COLOR_MAP
 
 
 class DifferentialDriveRobot:
@@ -20,6 +20,7 @@ class DifferentialDriveRobot:
         self.linear_velocity = 0
 
         self.type = type # 0 avoider or 1 seeker
+        self.state = 0 # 0 default, 1 safe, 2 caught
     
         self.landmarks = []
         self.left_motor_speed = 0
@@ -85,7 +86,7 @@ class DifferentialDriveRobot:
         right_wheel_y = self.y - half_axl * math.cos(self.theta)
 
         # Calculate the heading line end point
-        heading_length = 15
+        heading_length = 45
         heading_x = self.x + heading_length * math.cos(self.theta)
         heading_y = self.y + heading_length * math.sin(self.theta)
 
@@ -93,7 +94,7 @@ class DifferentialDriveRobot:
         pygame.draw.line(surface, (0, 255, 0), (left_wheel_x, left_wheel_y), (right_wheel_x, right_wheel_y), 3)
 
         # Draw the heading line
-        color =  (0,255,0) if self.type == AVOIDER else (255,0,0)
+        color =  STATE_COLOR_MAP[self.type, self.state]
         pygame.draw.line(surface, color, (self.x, self.y), (heading_x, heading_y), 3)
 
 
@@ -124,6 +125,22 @@ class DifferentialDriveRobot:
                 self.set_motor_speeds(-random_left,random_right)
         else:
             self.set_motor_speeds(speed * (1 -(1/front_left_sensor_1)), speed - (1 + (1/front_right_sensor_1)))
+
+
+    def manual_control(self, keys):
+        speed = 1200  # Define the base speed for manual control
+        turn_speed = 500  # Define the turning speed
+        
+        if keys[pygame.K_UP]:
+            self.set_motor_speeds(speed, speed)  # Move forward
+        elif keys[pygame.K_DOWN]:
+            self.set_motor_speeds(-speed, -speed)  # Move backward
+        elif keys[pygame.K_LEFT]:
+            self.set_motor_speeds(-turn_speed, turn_speed)  # Turn left
+        elif keys[pygame.K_RIGHT]:
+            self.set_motor_speeds(turn_speed, -turn_speed)  # Turn right
+        else:
+            self.set_motor_speeds(0, 0)  # Stop if no keys are pressed
 
 class CompassSensor:
 
