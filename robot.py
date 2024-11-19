@@ -3,8 +3,9 @@ import pygame
 import math
 import random
 import numpy as np
-from constants import STATE_COLOR_MAP
-
+from constants import CAMERA_RANGE, MAX_WHEEL_SPEED, STATE_COLOR_MAP
+from shapely.geometry import  Polygon
+from camera_sensor import CameraSensor
 
 class DifferentialDriveRobot:
     def __init__(self, x, y, theta, image_path, type, axl_dist=5, wheel_radius=2.2):
@@ -28,6 +29,7 @@ class DifferentialDriveRobot:
         self.compass = CompassSensor()
         self.odometry_weight = 0.0
         self.odometry_noise_level = 0.01
+        self.camera_sensor = CameraSensor(camera_range=CAMERA_RANGE)
 
     def predict(self, delta_time):
         self.move(delta_time)
@@ -72,30 +74,61 @@ class DifferentialDriveRobot:
         self.y= estimated_pose.y
         self.theta = estimated_pose.theta
 
+    # def draw(self, surface):
+    #     rotated_image = pygame.transform.rotate(self.image, math.degrees(-1*self.theta))
+    #     self.rect.center = (int(self.x), int(self.y))
+    #     new_rect = rotated_image.get_rect(center=self.rect.center)
+    #     surface.blit(rotated_image, new_rect)
+
+    #      # Calculate the left and right wheel positions
+    #     half_axl = self.axl_dist
+    #     left_wheel_x = self.x - half_axl * math.sin(self.theta)
+    #     left_wheel_y = self.y + half_axl * math.cos(self.theta)
+    #     right_wheel_x = self.x + half_axl * math.sin(self.theta)
+    #     right_wheel_y = self.y - half_axl * math.cos(self.theta)
+
+    #     # Calculate the heading line end point
+    #     heading_length = 45
+    #     heading_x = self.x + heading_length * math.cos(self.theta)
+    #     heading_y = self.y + heading_length * math.sin(self.theta)
+
+    #     # Draw the axle line
+    #     pygame.draw.line(surface, (0, 255, 0), (left_wheel_x, left_wheel_y), (right_wheel_x, right_wheel_y), 3)
+
+    #     # Draw the heading line
+    #     color =  STATE_COLOR_MAP[self.type, self.state]
+    #     pygame.draw.line(surface, color, (self.x, self.y), (heading_x, heading_y), 4)
+
+
     def draw(self, surface):
-        rotated_image = pygame.transform.rotate(self.image, math.degrees(-1*self.theta))
+        # Rotate and draw the robot image
+        rotated_image = pygame.transform.rotate(self.image, math.degrees(-1 * self.theta))
         self.rect.center = (int(self.x), int(self.y))
         new_rect = rotated_image.get_rect(center=self.rect.center)
         surface.blit(rotated_image, new_rect)
 
-         # Calculate the left and right wheel positions
+        # Calculate the left and right wheel positions
         half_axl = self.axl_dist
         left_wheel_x = self.x - half_axl * math.sin(self.theta)
         left_wheel_y = self.y + half_axl * math.cos(self.theta)
         right_wheel_x = self.x + half_axl * math.sin(self.theta)
         right_wheel_y = self.y - half_axl * math.cos(self.theta)
 
-        # Calculate the heading line end point
-        heading_length = 45
-        heading_x = self.x + heading_length * math.cos(self.theta)
-        heading_y = self.y + heading_length * math.sin(self.theta)
-
         # Draw the axle line
         pygame.draw.line(surface, (0, 255, 0), (left_wheel_x, left_wheel_y), (right_wheel_x, right_wheel_y), 3)
 
         # Draw the heading line
-        color =  STATE_COLOR_MAP[self.type, self.state]
+        heading_length = 45
+        heading_x = self.x + heading_length * math.cos(self.theta)
+        heading_y = self.y + heading_length * math.sin(self.theta)
+        color = STATE_COLOR_MAP[self.type, self.state]
         pygame.draw.line(surface, color, (self.x, self.y), (heading_x, heading_y), 4)
+
+        # Add trapezoid for the camera view
+        _, camera_point_list  = self.camera_sensor.create_view_frustum(self.x, self.y, self.theta)
+
+        # Draw the trapezoid
+        pygame.draw.polygon(surface, (255, 0, 0, 100), camera_point_list, width=1)
 
 
     def getMotorspeeds(self):
@@ -125,6 +158,25 @@ class DifferentialDriveRobot:
                 self.set_motor_speeds(-random_left,random_right)
         else:
             self.set_motor_speeds(speed * (1 -(1/front_left_sensor_1)), speed - (1 + (1/front_right_sensor_1)))
+
+
+    def seek_robot(self, other_robots):
+        turn_speed = MAX_WHEEL_SPEED/5
+        # (robot_found, location) = self.is_there_a_robot(*self.get_robot_position())
+        robot_pos = self.get_robot_position()
+        (robot_found, location) = self.camera_sensor.detect(robot_pos.x, robot_pos.y, robot_pos.theta, other_robots)
+        if robot_found:
+            if location == "left":
+                self.set_motor_speeds(-turn_speed, turn_speed)
+            elif location == "right":
+                self.set_motor_speeds(turn_speed, -turn_speed)
+            else:
+                self.set_motor_speeds(MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
+        else:
+            left_wheel = random.randint(0, MAX_WHEEL_SPEED)
+            right_wheel = random.randint(0, MAX_WHEEL_SPEED)
+            self.set_motor_speeds(left_wheel, right_wheel)
+
 
 
     def manual_control(self, keys):
