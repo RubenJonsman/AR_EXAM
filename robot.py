@@ -3,10 +3,11 @@ import pygame
 import math
 import random
 import numpy as np
+from constants import AVOIDER, SEEKER
 
 
 class DifferentialDriveRobot:
-    def __init__(self, x, y, theta, image_path, axl_dist=5, wheel_radius=2.2):
+    def __init__(self, x, y, theta, image_path, type, axl_dist=5, wheel_radius=2.2):
         self.x = x
         self.y = y
         self.theta = theta  # Orientation in radians
@@ -17,6 +18,8 @@ class DifferentialDriveRobot:
         self.currently_turning = 0
         self.angular_velocity = 0
         self.linear_velocity = 0
+
+        self.type = type # 0 avoider or 1 seeker
     
         self.landmarks = []
         self.left_motor_speed = 0
@@ -39,8 +42,6 @@ class DifferentialDriveRobot:
         return RobotPose(self.x, self.y, self.theta)
     
     def move(self, delta_time):
-        
-        
         # Assume maximum linear velocity at motor speed 500
         v_max = 10  # pixels/second
         
@@ -56,12 +57,6 @@ class DifferentialDriveRobot:
         self.y += (v_y * delta_time)
         self.theta += (omega * delta_time)
 
-        # Ensure the orientation is within the range [0, 2*pi)
-        #self.theta = self.theta % (2 * math.pi)
-
-        # Add a small amount of noise to the orientation
-        #noise = random.gauss(0, self.odometry_noise_level)
-        #self.theta += noise
 
     def set_motor_speeds(self, left_motor_speed, right_motor_speed):
         self.left_motor_speed = left_motor_speed
@@ -98,7 +93,8 @@ class DifferentialDriveRobot:
         pygame.draw.line(surface, (0, 255, 0), (left_wheel_x, left_wheel_y), (right_wheel_x, right_wheel_y), 3)
 
         # Draw the heading line
-        pygame.draw.line(surface, (255, 0, 0), (self.x, self.y), (heading_x, heading_y), 3)
+        color =  (0,255,0) if self.type == AVOIDER else (255,0,0)
+        pygame.draw.line(surface, color, (self.x, self.y), (heading_x, heading_y), 3)
 
 
     def getMotorspeeds(self):
@@ -112,8 +108,7 @@ class DifferentialDriveRobot:
         right_sensor = lidar_scans[len(lidar_scans)//4]
         front_left_sensor_1 = lidar_scans[len(lidar_scans)//8 * 7]
         left_sensor = lidar_scans[len(lidar_scans)//4 * 3]
-        #Exercise 6.1 modify this to control the robot
-        #Exercise 6.2 use your exploration algorithm from previous exercise if you have it.
+        
         wallDistance = 200
         speed = 1000
         if left_sensor < wallDistance and front_left_sensor_1 < wallDistance:

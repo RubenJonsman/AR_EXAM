@@ -6,7 +6,7 @@ from pygame.locals import QUIT, KEYDOWN
 from environment import Environment
 from robot import DifferentialDriveRobot
 from robot import RobotPose
-from constants import WIDTH, HEIGHT
+from constants import AVOIDER, SEEKER, WIDTH, HEIGHT
 
 class GameBoard:
   def __init__(self):
@@ -16,12 +16,13 @@ class GameBoard:
     self.env = Environment(WIDTH, HEIGHT)
 
     # Initialize lidar and robot
-    self.robot = DifferentialDriveRobot(WIDTH/2, HEIGHT/2, 2.6, 'thymio_small.png')
+    self.robot = DifferentialDriveRobot(WIDTH/2, HEIGHT/2, 2.6, 'thymio_small.png', type=SEEKER)
+    self.avoid_robots = [DifferentialDriveRobot(WIDTH/i + 10, HEIGHT/i+ 10, 2.6, 'thymio_small.png', type=AVOIDER) for i in range(1, 6)]
     self.lidar = LidarSensor()
 
     # For potential visualization
     self.USE_VISUALIZATION = True
-    self.DRAW_LIDAR = True
+    self.DRAW_LIDAR = False
     self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Robotics Simulation")
 
@@ -58,6 +59,8 @@ class GameBoard:
         self.screen.fill((0, 0, 0))
         self.env.draw(self.screen)
         self.robot.draw(self.screen)
+        for robot in self.avoid_robots:
+          robot.draw(self.screen)
 
         if self.DRAW_LIDAR:
           self.lidar.draw(robot_pose, _intersect_points, self.screen)
