@@ -3,9 +3,12 @@ import pygame
 import math
 import random
 import numpy as np
-from constants import CAMERA_RANGE, MAX_WHEEL_SPEED, STATE_COLOR_MAP
+from constants import CAMERA_RANGE, MAX_WHEEL_SPEED, STATE_COLOR_MAP, DEFAULT_STATE, GREY_DANGER_ZONE, SAFE_STATE, SILVER_SAFE_ZONE
 from shapely.geometry import  Polygon
 from camera_sensor import CameraSensor
+from environment import Environment
+from floor_color_sensor import FloorColorSensor
+from robot_pose import RobotPose
 
 class DifferentialDriveRobot:
     def __init__(self, x, y, theta, image_path, type, axl_dist=5, wheel_radius=2.2):
@@ -30,6 +33,8 @@ class DifferentialDriveRobot:
         self.odometry_weight = 0.0
         self.odometry_noise_level = 0.01
         self.camera_sensor = CameraSensor(camera_range=CAMERA_RANGE)
+
+        self.floor_sensor = FloorColorSensor()
 
     def predict(self, delta_time):
         self.move(delta_time)
@@ -130,6 +135,17 @@ class DifferentialDriveRobot:
         # Draw the trapezoid
         pygame.draw.polygon(surface, (255, 0, 0, 100), camera_point_list, width=1)
 
+    def update_robot_state_based_on_floor_color(self, environment: Environment, robot_pose: RobotPose):
+        self.floor_sensor.detect_color(environment=environment, robot_pose=robot_pose)
+        color = self.floor_sensor.get_color()
+
+        if color == SILVER_SAFE_ZONE:
+            self.state = SAFE_STATE
+            return
+
+        if color == GREY_DANGER_ZONE:
+            self.state = DEFAULT_STATE
+            return
 
     def getMotorspeeds(self):
         return (self.left_motor_speed, self.right_motor_speed)
@@ -220,12 +236,3 @@ class CompassSensor:
 
         # Return the updated theta in radians
         return start_heading
-
-class RobotPose:
-    def __init__(self, x, y, theta):
-        self.x = x
-        self.y = y
-        self.theta = theta
-    #this is for pretty printing
-    def __repr__(self) -> str:
-        return f"x:{self.x},y:{self.y},theta:{self.theta}"

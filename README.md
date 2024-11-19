@@ -21,11 +21,11 @@ https://learnit.itu.dk/pluginfile.php/400034/mod_resource/content/1/tag-project.
 'python3.11 dev_LED.py'
 
 
-IP address: 
+IP address:
 
 Todo:
 - Robot
-    
+
     - [x] Robot LED (What state it is in)
 
     - [ ] Robot InfraRed communication
@@ -37,7 +37,9 @@ Todo:
     - [ ] Robot detect other robots state
 
 - Simulation
-    - [ ] Make map
-    - [ ] Create robots
+    - [x] Make map
+    - [x] Create robots
+    - [x] Simulate floor sensor
+    - [ ] Simulate camera sensor
     - [ ] Implement tag-and-avoid behavior
-    - [ ] Make simulation as close to reality as possible, i.e how long the camera can see, how far the infrared can be detected 
+    - [ ] Make simulation as close to reality as possible, i.e how long the camera can see, how far the infrared can be detected
