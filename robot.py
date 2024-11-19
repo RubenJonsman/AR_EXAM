@@ -21,7 +21,7 @@ class DifferentialDriveRobot:
 
         self.type = type # 0 avoider or 1 seeker
         self.state = 0 # 0 default, 1 safe, 2 caught
-    
+
         self.landmarks = []
         self.left_motor_speed = 0
         self.right_motor_speed = 0
@@ -39,21 +39,21 @@ class DifferentialDriveRobot:
 
         # Update the robot's orientation
         #self.theta = blended_heading
-        
+
         return RobotPose(self.x, self.y, self.theta)
-    
+
     def move(self, delta_time):
         # Assume maximum linear velocity at motor speed 500
         v_max = 10  # pixels/second
-        
+
         # Calculate the linear velocity of each wheel
         left_wheel_velocity = (self.left_motor_speed / 500) * v_max
         right_wheel_velocity = (self.right_motor_speed / 500) * v_max
-        
+
         v_x = math.cos(self.theta) * (self.wheel_radius * (left_wheel_velocity + right_wheel_velocity) / 2)
         v_y = math.sin(self.theta) * (self.wheel_radius * (left_wheel_velocity + right_wheel_velocity) / 2)
         omega = (self.wheel_radius * (left_wheel_velocity - right_wheel_velocity)) / (2 * self.axl_dist)
-        
+
         self.x += (v_x * delta_time)
         self.y += (v_y * delta_time)
         self.theta += (omega * delta_time)
@@ -62,11 +62,11 @@ class DifferentialDriveRobot:
     def set_motor_speeds(self, left_motor_speed, right_motor_speed):
         self.left_motor_speed = left_motor_speed
         self.right_motor_speed = right_motor_speed
-        
+
 
     def get_robot_position(self):
         return RobotPose(self.x, self.y, self.theta)
-    
+
     def update_estimated_position(self, estimated_pose):
         self.x = estimated_pose.x
         self.y= estimated_pose.y
@@ -101,7 +101,7 @@ class DifferentialDriveRobot:
     def getMotorspeeds(self):
         return (self.left_motor_speed, self.right_motor_speed)
 
-    #Exercise 6.1 make the robot explore the environment. 
+    #Exercise 6.1 make the robot explore the environment.
     #Exercise 6.2 make the robot avoid the walls using lidar sensor data
     def explore_environment(self, lidar_scans):
         front_sensor = lidar_scans[0]
@@ -109,7 +109,7 @@ class DifferentialDriveRobot:
         right_sensor = lidar_scans[len(lidar_scans)//4]
         front_left_sensor_1 = lidar_scans[len(lidar_scans)//8 * 7]
         left_sensor = lidar_scans[len(lidar_scans)//4 * 3]
-        
+
         wallDistance = 200
         speed = 1000
         if left_sensor < wallDistance and front_left_sensor_1 < wallDistance:
@@ -130,7 +130,7 @@ class DifferentialDriveRobot:
     def manual_control(self, keys):
         speed = 1200  # Define the base speed for manual control
         turn_speed = 500  # Define the turning speed
-        
+
         if keys[pygame.K_UP]:
             self.set_motor_speeds(speed, speed)  # Move forward
         elif keys[pygame.K_DOWN]:
@@ -168,7 +168,7 @@ class CompassSensor:
 
         # Return the updated theta in radians
         return start_heading
-    
+
 class RobotPose:
     def __init__(self, x, y, theta):
         self.x = x

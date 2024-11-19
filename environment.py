@@ -12,7 +12,7 @@ class Environment:
         self.safeZone = []
         self.safeZoneSize = 50
         self.create_floorplan()
-    
+
     def get_dimensions(self):
         return (self.width,self.height)
     def create_floorplan(self):
@@ -22,7 +22,7 @@ class Environment:
         right_wall = LineString([(self.width - PADDING, self.height-PADDING), (self.width-PADDING, 0+PADDING)])
         top_wall = LineString([(self.width-PADDING, 0+PADDING), (0+PADDING, 0+PADDING)])
         self.walls = [left_wall,bottom_wall,right_wall,top_wall]
-        
+
         # create a safe zone in the middle
         safe_zone_left_wall = LineString([(self.width/2 - self.safeZoneSize/2, self.height/2 - self.safeZoneSize/2), (self.width/2 - self.safeZoneSize/2, self.height/2 + self.safeZoneSize/2)])
         safe_zone_bottom_wall = LineString([(self.width/2 - self.safeZoneSize/2, self.height/2 + self.safeZoneSize/2), (self.width/2 + self.safeZoneSize/2, self.height/2 + self.safeZoneSize/2)])
@@ -32,19 +32,19 @@ class Environment:
 
     def get_environment(self):
         return self.walls
-    
+
     def checkCollision(self, pos):
         for line in self.walls:
             if line.distance(Point(pos.x, pos.y)) <= 5:
                 return True
-    
+
     def draw(self,screen):
         # Draw the walls
         for wall in self.walls:
             pygame.draw.line(screen,(255,0,0),(int(wall.xy[0][0]),int(wall.xy[1][0])),(int(wall.xy[0][1]),int(wall.xy[1][1])),4)# (screen, (255, 0, 0), False, wall.xy, 4)
-        
+
         for wall in self.safeZone:
-            pygame.draw.line(screen,(0,255,0),(int(wall.xy[0][0]),int(wall.xy[1][0])),(int(wall.xy[0][1]),int(wall.xy[1][1])),4)
+            pygame.draw.line(screen,(128,128,128),(int(wall.xy[0][0]),int(wall.xy[1][0])),(int(wall.xy[0][1]),int(wall.xy[1][1])),4)
 
 
 
