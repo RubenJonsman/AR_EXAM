@@ -75,7 +75,7 @@ class GameBoard:
 
       # EXERCISE 6.1: make the robot move and navigate the environment based on our current sensor information and our current map.
       
-      self.robots[0].seek_robot(self.avoid_robots)
+      self.robots[0].seek_robot(self.robots[1:])
 
       if self.USE_VISUALIZATION:
         self.screen.fill((0, 0, 0))

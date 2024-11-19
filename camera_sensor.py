@@ -56,6 +56,7 @@ class CameraSensor:
             x, y, theta = other_robot_pos.x, other_robot_pos.y, other_robot_pos.theta
             if polygon.contains(Point(x, y)):
                 if self.get_color(other_robot) == AVOIDER_COLOR:
+                    print("Avoider detected")
                     return True, (x, y, theta)
 
         return False, None
