@@ -1,0 +1,7 @@
+pygame
+torch
+numpy
+shapely
+matplotlib
+scipy
+dill
