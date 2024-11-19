@@ -2,13 +2,14 @@ import pygame
 from pygame.locals import QUIT
 from shapely.geometry import LineString, Polygon, Point
 
+from constants import PADDING
+
 class Environment:
     def __init__(self, width, height) -> None:
         self.width = width
         self.height = height
         self.walls = []
         self.safeZone = []
-        self.padding = 50
         self.safeZoneSize = 50
         self.create_floorplan()
     
@@ -16,10 +17,10 @@ class Environment:
         return (self.width,self.height)
     def create_floorplan(self):
         # Create LineString objects for the walls
-        left_wall = LineString([(0+self.padding, 0+self.padding), (0+self.padding, self.height-self.padding)])
-        bottom_wall = LineString([(0+self.padding, self.height-self.padding), (self.width-self.padding, self.height-self.padding)])
-        right_wall = LineString([(self.width - self.padding, self.height-self.padding), (self.width-self.padding, 0+self.padding)])
-        top_wall = LineString([(self.width-self.padding, 0+self.padding), (0+self.padding, 0+self.padding)])
+        left_wall = LineString([(0+PADDING, 0+PADDING), (0+PADDING, self.height-PADDING)])
+        bottom_wall = LineString([(0+PADDING, self.height-PADDING), (self.width-PADDING, self.height-PADDING)])
+        right_wall = LineString([(self.width - PADDING, self.height-PADDING), (self.width-PADDING, 0+PADDING)])
+        top_wall = LineString([(self.width-PADDING, 0+PADDING), (0+PADDING, 0+PADDING)])
         self.walls = [left_wall,bottom_wall,right_wall,top_wall]
         
         # create a safe zone in the middle

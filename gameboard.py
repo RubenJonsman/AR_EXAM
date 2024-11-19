@@ -6,7 +6,7 @@ from pygame.locals import QUIT, KEYDOWN
 from environment import Environment
 from robot import DifferentialDriveRobot
 from robot import RobotPose
-from constants import AVOIDER, SEEKER, WIDTH, HEIGHT
+from constants import AVOIDER, PADDING, SEEKER, WIDTH, HEIGHT
 
 class GameBoard:
   def __init__(self):
@@ -15,9 +15,18 @@ class GameBoard:
 
     self.env = Environment(WIDTH, HEIGHT)
 
+    offset = 20 + PADDING
+
+    self.corners =[(WIDTH - offset, HEIGHT - offset),
+                   (0 + offset, 0 + offset),
+                   (WIDTH- offset, 0 + offset),
+                   (0 + offset, HEIGHT- offset)]
+
     # Initialize lidar and robot
     self.robot = DifferentialDriveRobot(WIDTH/2, HEIGHT/2, 2.6, 'thymio_small.png', type=SEEKER)
-    self.avoid_robots = [DifferentialDriveRobot(WIDTH/i + 10, HEIGHT/i+ 10, 2.6, 'thymio_small.png', type=AVOIDER) for i in range(1, 6)]
+
+    # spawn robots in the corners
+    self.avoid_robots = [DifferentialDriveRobot(x, y, 2.6, 'thymio_small.png', type=AVOIDER) for x, y in self.corners]
     self.lidar = LidarSensor()
 
     # For potential visualization
