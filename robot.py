@@ -3,8 +3,10 @@ import pygame
 import math
 import random
 import numpy as np
-from constants import STATE_COLOR_MAP
-
+from constants import DEFAULT_STATE, GREY_DANGER_ZONE, SAFE_STATE, SILVER_SAFE_ZONE, STATE_COLOR_MAP
+from environment import Environment
+from floor_color_sensor import FloorColorSensor
+from robot_pose import RobotPose
 
 class DifferentialDriveRobot:
     def __init__(self, x, y, theta, image_path, type, axl_dist=5, wheel_radius=2.2):
@@ -28,6 +30,8 @@ class DifferentialDriveRobot:
         self.compass = CompassSensor()
         self.odometry_weight = 0.0
         self.odometry_noise_level = 0.01
+
+        self.floor_sensor = FloorColorSensor()
 
     def predict(self, delta_time):
         self.move(delta_time)
@@ -97,6 +101,17 @@ class DifferentialDriveRobot:
         color =  STATE_COLOR_MAP[self.type, self.state]
         pygame.draw.line(surface, color, (self.x, self.y), (heading_x, heading_y), 4)
 
+    def update_robot_state_based_on_floor_color(self, environment: Environment, robot_pose: RobotPose):
+        self.floor_sensor.detect_color(environment=environment, robot_pose=robot_pose)
+        color = self.floor_sensor.get_color()
+
+        if color == SILVER_SAFE_ZONE:
+            self.state = SAFE_STATE
+            return
+
+        if color == GREY_DANGER_ZONE:
+            self.state = DEFAULT_STATE
+            return
 
     def getMotorspeeds(self):
         return (self.left_motor_speed, self.right_motor_speed)
@@ -168,12 +183,3 @@ class CompassSensor:
 
         # Return the updated theta in radians
         return start_heading
-
-class RobotPose:
-    def __init__(self, x, y, theta):
-        self.x = x
-        self.y = y
-        self.theta = theta
-    #this is for pretty printing
-    def __repr__(self) -> str:
-        return f"x:{self.x},y:{self.y},theta:{self.theta}"

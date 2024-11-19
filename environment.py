@@ -9,7 +9,7 @@ class Environment:
         self.width = width
         self.height = height
         self.walls = []
-        self.safeZone = []
+        self.safe_zone = []
         self.safeZoneSize = 50
         self.create_floorplan()
 
@@ -28,7 +28,14 @@ class Environment:
         safe_zone_bottom_wall = LineString([(self.width/2 - self.safeZoneSize/2, self.height/2 + self.safeZoneSize/2), (self.width/2 + self.safeZoneSize/2, self.height/2 + self.safeZoneSize/2)])
         safe_zone_right_wall = LineString([(self.width/2 + self.safeZoneSize/2, self.height/2 + self.safeZoneSize/2), (self.width/2 + self.safeZoneSize/2, self.height/2 - self.safeZoneSize/2)])
         safe_zone_top_wall = LineString([(self.width/2 + self.safeZoneSize/2, self.height/2 - self.safeZoneSize/2), (self.width/2 - self.safeZoneSize/2, self.height/2 - self.safeZoneSize/2)])
-        self.safeZone = [safe_zone_left_wall,safe_zone_bottom_wall,safe_zone_right_wall,safe_zone_top_wall]
+
+        safe_zone_rect = Polygon([(self.width/2 - self.safeZoneSize/2, self.height/2 - self.safeZoneSize/2),
+                                  (self.width/2 - self.safeZoneSize/2, self.height/2 + self.safeZoneSize/2),
+                                  (self.width/2 + self.safeZoneSize/2, self.height/2 + self.safeZoneSize/2),
+                                  (self.width/2 + self.safeZoneSize/2, self.height/2 - self.safeZoneSize/2)])
+
+        self.safe_zone = [safe_zone_left_wall,safe_zone_bottom_wall,safe_zone_right_wall,safe_zone_top_wall]
+        self.safe_zone_rect = safe_zone_rect
 
     def get_environment(self):
         return self.walls
@@ -43,7 +50,7 @@ class Environment:
         for wall in self.walls:
             pygame.draw.line(screen,(255,0,0),(int(wall.xy[0][0]),int(wall.xy[1][0])),(int(wall.xy[0][1]),int(wall.xy[1][1])),4)# (screen, (255, 0, 0), False, wall.xy, 4)
 
-        for wall in self.safeZone:
+        for wall in self.safe_zone:
             pygame.draw.line(screen,(128,128,128),(int(wall.xy[0][0]),int(wall.xy[1][0])),(int(wall.xy[0][1]),int(wall.xy[1][1])),4)
 
 

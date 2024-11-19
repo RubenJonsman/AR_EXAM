@@ -5,8 +5,8 @@ from lidar import LidarSensor
 from pygame.locals import QUIT, KEYDOWN
 from environment import Environment
 from robot import DifferentialDriveRobot
-from robot import RobotPose
-from constants import AVOIDER, PADDING, SEEKER, WIDTH, HEIGHT
+from robot_pose import RobotPose
+from constants import AVOIDER, BLACK_WALL_ZONE, PADDING, SEEKER, WIDTH, HEIGHT
 
 class GameBoard:
   def __init__(self):
@@ -62,9 +62,11 @@ class GameBoard:
 
       # Generate Lidar scans - for these exercises, you will be given these.
       lidar_scans, _intersect_points = self.lidar.generate_scans(robot_pose, self.env.get_environment())
-
       # EXERCISE 6.1: make the robot move and navigate the environment based on our current sensor information and our current map.
-      
+
+      self.robot.update_robot_state_based_on_floor_color(self.env, robot_pose)
+      print(self.robot.floor_sensor.get_color())
+
       # self.robot.explore_environment(lidar_scans)
 
       if self.USE_VISUALIZATION:
@@ -76,11 +78,6 @@ class GameBoard:
 
         if self.DRAW_LIDAR:
           self.lidar.draw(robot_pose, _intersect_points, self.screen)
-
-        # Update the display
-        collided = self.env.checkCollision(robot_pose)
-        if collided:
-          print("Collision")
 
         pygame.display.flip()
         pygame.display.update()
