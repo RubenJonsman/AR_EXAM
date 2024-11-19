@@ -52,10 +52,6 @@ class GameBoard:
       # Generate Lidar scans - for these exercises, you will be given these.
       lidar_scans, _intersect_points = self.lidar.generate_scans(robot_pose, self.env.get_environment())
 
-      # Mix the update, sense data into one position
-      mixed_pose = RobotPose((0.1 * robot_pose.x + 0.9), \
-                   (0.1 * robot_pose.y + 0.9), \
-                   (robot_pose.theta))
 
       # EXERCISE 6.1: make the robot move and navigate the environment based on our current sensor information and our current map.
       self.robot.explore_environment(lidar_scans)
