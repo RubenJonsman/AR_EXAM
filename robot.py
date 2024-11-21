@@ -3,7 +3,8 @@ import pygame
 import math
 import random
 import numpy as np
-from constants import BLACK_WALL_ZONE, CAMERA_RANGE, MAX_WHEEL_SPEED, STATE_COLOR_MAP, DEFAULT_STATE, GREY_DANGER_ZONE, SAFE_STATE, SILVER_SAFE_ZONE
+from avoid_robot_model import AvoidModel
+from constants import AVOIDER, AVOIDER, AVOIDER_COLOR, BLACK_WALL_ZONE, CAMERA_RANGE, CAUGHT_STATE, MAX_BACKUP, MAX_WHEEL_SPEED, SEEKER_COLOR, STATE_COLOR_MAP, DEFAULT_STATE, GREY_DANGER_ZONE, SAFE_STATE, SILVER_SAFE_ZONE, INPUT_SIZE, HIDDEN_SIZE
 from shapely.geometry import  Polygon
 from camera_sensor import CameraSensor
 from environment import Environment
@@ -24,8 +25,12 @@ class DifferentialDriveRobot:
         self.linear_velocity = 0
 
         self.type = type # 0 avoider or 1 seeker
-        self.state = 0 # 0 default, 1 safe, 2 caught
-
+        self.state = DEFAULT_STATE # 0 default, 1 safe, 2 caught
+        self.avoid_model = None
+        
+        if self.type == AVOIDER:
+            self.avoid_model = AvoidModel(INPUT_SIZE, HIDDEN_SIZE)
+            
         self.landmarks = []
         self.left_motor_speed = 0
         self.right_motor_speed = 0
@@ -35,19 +40,13 @@ class DifferentialDriveRobot:
         self.camera_sensor = CameraSensor(camera_range=CAMERA_RANGE)
 
         self.floor_sensor = FloorColorSensor()
-        self.back_up = 0
+        self.back_up = 0 # counter for backing up
+
+    def fitness() -> float:
+        return random.randint(0, 100)
 
     def predict(self, delta_time):
         self.move(delta_time)
-        # Update orientation (theta) using the robot's compass sensor
-        #compass_heading = self.compass.read_compass_heading(self.theta,self.angular_velocity, delta_time)
-
-        # Blend odometry and compass headings
-        #blended_heading = (self.odometry_weight * self.theta) + ((1-self.odometry_weight) * compass_heading)
-
-        # Update the robot's orientation
-        #self.theta = blended_heading
-
         return RobotPose(self.x, self.y, self.theta)
 
     def move(self, delta_time):
@@ -78,32 +77,6 @@ class DifferentialDriveRobot:
         self.x = estimated_pose.x
         self.y= estimated_pose.y
         self.theta = estimated_pose.theta
-
-    # def draw(self, surface):
-    #     rotated_image = pygame.transform.rotate(self.image, math.degrees(-1*self.theta))
-    #     self.rect.center = (int(self.x), int(self.y))
-    #     new_rect = rotated_image.get_rect(center=self.rect.center)
-    #     surface.blit(rotated_image, new_rect)
-
-    #      # Calculate the left and right wheel positions
-    #     half_axl = self.axl_dist
-    #     left_wheel_x = self.x - half_axl * math.sin(self.theta)
-    #     left_wheel_y = self.y + half_axl * math.cos(self.theta)
-    #     right_wheel_x = self.x + half_axl * math.sin(self.theta)
-    #     right_wheel_y = self.y - half_axl * math.cos(self.theta)
-
-    #     # Calculate the heading line end point
-    #     heading_length = 45
-    #     heading_x = self.x + heading_length * math.cos(self.theta)
-    #     heading_y = self.y + heading_length * math.sin(self.theta)
-
-    #     # Draw the axle line
-    #     pygame.draw.line(surface, (0, 255, 0), (left_wheel_x, left_wheel_y), (right_wheel_x, right_wheel_y), 3)
-
-    #     # Draw the heading line
-    #     color =  STATE_COLOR_MAP[self.type, self.state]
-    #     pygame.draw.line(surface, color, (self.x, self.y), (heading_x, heading_y), 4)
-
 
     def draw(self, surface):
         # Rotate and draw the robot image
@@ -139,6 +112,9 @@ class DifferentialDriveRobot:
         self.floor_sensor.detect_color(environment=environment, robot_pose=robot_pose)
         color = self.floor_sensor.get_color()
 
+        if self.state == CAUGHT_STATE:
+            return
+
         if color == SILVER_SAFE_ZONE:
             self.state = SAFE_STATE
             return
@@ -150,49 +126,115 @@ class DifferentialDriveRobot:
     def getMotorspeeds(self):
         return (self.left_motor_speed, self.right_motor_speed)
 
-    #Exercise 6.1 make the robot explore the environment.
-    #Exercise 6.2 make the robot avoid the walls using lidar sensor data
-    def explore_environment(self, lidar_scans):
-        front_sensor = lidar_scans[0]
-        front_right_sensor_1 = lidar_scans[len(lidar_scans)//8]
-        right_sensor = lidar_scans[len(lidar_scans)//4]
-        front_left_sensor_1 = lidar_scans[len(lidar_scans)//8 * 7]
-        left_sensor = lidar_scans[len(lidar_scans)//4 * 3]
-
-        wallDistance = 200
-        speed = 1000
-        if left_sensor < wallDistance and front_left_sensor_1 < wallDistance:
-            self.set_motor_speeds(speed,0)
-        elif right_sensor < wallDistance and front_right_sensor_1 < wallDistance:
-            self.set_motor_speeds(0,speed)
-        elif front_sensor < wallDistance:
-            random_left = random.randrange(0, speed)
-            random_right = random.randrange(0, speed)
-            if random_right > random_left:
-                self.set_motor_speeds(random_left,-random_right)
-            else:
-                self.set_motor_speeds(-random_left,random_right)
+    def avoid_robot_model(self, other_robots, environment):
+        robot_pose = self.get_robot_position()
+        (robot_found, location) = self.camera_sensor.detect(robot_pose, other_robots, SEEKER_COLOR)
+        self.floor_sensor.detect_color(robot_pose, environment)
+        floor_color = self.floor_sensor.get_color()
+        left, right, center = 0, 0, 0
+        if location == "left":
+            left = 1
+        elif location == "right":
+            right = 1
         else:
-            self.set_motor_speeds(speed * (1 -(1/front_left_sensor_1)), speed - (1 + (1/front_right_sensor_1)))
+            center = 1
 
+        robot_found_bool = 0
+        if robot_found is not None:
+            robot_found_bool = 1
+
+        output = self.avoid_model.forward(left, right, center, robot_found_bool, floor_color)
+        left_wheel, right_wheel = output[0].item() * MAX_WHEEL_SPEED, output[1].item() * MAX_WHEEL_SPEED
+        self.set_motor_speeds(left_wheel, right_wheel)
+
+
+
+    def avoid_robot(self, other_robots, environment):
+        turn_speed = MAX_WHEEL_SPEED/5
+        # (robot_found, location) = self.is_there_a_robot(*self.get_robot_position())
+        robot_pose = self.get_robot_position()
+        (robot_found, location) = self.camera_sensor.detect(robot_pose, other_robots, SEEKER_COLOR)
+        # if robot_found:
+        #     if location == "left":
+        #         self.set_motor_speeds(-turn_speed, turn_speed)
+        #     elif location == "right":
+        #         self.set_motor_speeds(turn_speed, -turn_speed)
+        #     else:
+        #         self.set_motor_speeds(MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
+        # else:
+        self.floor_sensor.detect_color(robot_pose, environment)
+        floor_color = self.floor_sensor.get_color()
+
+        if floor_color == BLACK_WALL_ZONE:
+            if self.back_up == 0:
+                self.back_up = MAX_BACKUP
+            else:
+                self.set_motor_speeds(MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
+                self.back_up =0
+
+        if self.back_up > MAX_BACKUP // 2:
+            self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
+            self.back_up -= 1
+            return
+        if self.back_up > 0:
+            self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
+            self.back_up -= 1
+            return
+        
+        left_wheel = random.randint(0, MAX_WHEEL_SPEED)
+        right_wheel = random.randint(0, MAX_WHEEL_SPEED)
+        self.set_motor_speeds(left_wheel, right_wheel)
+
+    def get_distance_to_robot(self, other_robot):
+        selfPos = self.get_robot_position()
+        x1, y1 = selfPos.x, selfPos.y
+        otherPos = other_robot.get_robot_position()
+        x2, y2 = otherPos.x, otherPos.y
+        return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+    # if the distance to the other robot is less than threshold change the robots state to caught
+    def tag_robot(self, other_robot):
+        distance = self.get_distance_to_robot(other_robot)
+        if distance < 30:
+            print("Caught", other_robot)
+            other_robot.state = CAUGHT_STATE
 
     def seek_robot(self, other_robots, environment):
         turn_speed = MAX_WHEEL_SPEED/5
         # (robot_found, location) = self.is_there_a_robot(*self.get_robot_position())
         robot_pose = self.get_robot_position()
-        (robot_found, location) = self.camera_sensor.detect(robot_pose, other_robots)
-        if robot_found:
+        (location, other_robot) = self.camera_sensor.detect(robot_pose, other_robots, AVOIDER_COLOR)
+
+        # check if all robots are in the caught state
+        all_caught = True
+        for robot in other_robots:
+            if robot.state != CAUGHT_STATE:
+                all_caught = False
+                break
+        if all_caught:
+            self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
+            return
+
+        if other_robot is not None:
             if location == "left":
                 self.set_motor_speeds(-turn_speed, turn_speed)
             elif location == "right":
                 self.set_motor_speeds(turn_speed, -turn_speed)
             else:
                 self.set_motor_speeds(MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
+            self.tag_robot(other_robot)
         else:
             self.floor_sensor.detect_color(robot_pose, environment)
             floor_color = self.floor_sensor.get_color()
-            if self.back_up > 50:
-                self.set_motor_speeds(-MAX_WHEEL_SPEED, -MAX_WHEEL_SPEED)
+            if floor_color == BLACK_WALL_ZONE:
+                if self.back_up == 0:
+                    self.back_up = MAX_BACKUP
+                else:
+                    self.set_motor_speeds(MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
+                    self.back_up = 0
+
+            if self.back_up > MAX_BACKUP // 2:
+                self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
                 self.back_up -= 1
                 return
             if self.back_up > 0:
@@ -200,12 +242,9 @@ class DifferentialDriveRobot:
                 self.back_up -= 1
                 return
             
-            if floor_color == BLACK_WALL_ZONE:
-                self.back_up = 100
-            else:
-                left_wheel = random.randint(0, MAX_WHEEL_SPEED)
-                right_wheel = random.randint(0, MAX_WHEEL_SPEED)
-                self.set_motor_speeds(left_wheel, right_wheel)
+            left_wheel = random.randint(0, MAX_WHEEL_SPEED)
+            right_wheel = random.randint(0, MAX_WHEEL_SPEED)
+            self.set_motor_speeds(left_wheel, right_wheel)
 
 
 
