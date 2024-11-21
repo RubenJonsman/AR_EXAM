@@ -3,7 +3,8 @@ import pygame
 import math
 import random
 import numpy as np
-from constants import BLACK_WALL_ZONE, CAMERA_RANGE, CAUGHT_STATE, MAX_BACKUP, MAX_WHEEL_SPEED, STATE_COLOR_MAP, DEFAULT_STATE, GREY_DANGER_ZONE, SAFE_STATE, SILVER_SAFE_ZONE
+from avoid_robot_model import AvoidModel
+from constants import AVOIDER, AVOIDER, AVOIDER_COLOR, BLACK_WALL_ZONE, CAMERA_RANGE, CAUGHT_STATE, MAX_BACKUP, MAX_WHEEL_SPEED, SEEKER_COLOR, STATE_COLOR_MAP, DEFAULT_STATE, GREY_DANGER_ZONE, SAFE_STATE, SILVER_SAFE_ZONE, INPUT_SIZE, HIDDEN_SIZE
 from shapely.geometry import  Polygon
 from camera_sensor import CameraSensor
 from environment import Environment
@@ -25,7 +26,11 @@ class DifferentialDriveRobot:
 
         self.type = type # 0 avoider or 1 seeker
         self.state = DEFAULT_STATE # 0 default, 1 safe, 2 caught
-
+        self.avoid_model = None
+        
+        if self.type == AVOIDER:
+            self.avoid_model = AvoidModel(INPUT_SIZE, HIDDEN_SIZE)
+            
         self.landmarks = []
         self.left_motor_speed = 0
         self.right_motor_speed = 0
@@ -37,17 +42,11 @@ class DifferentialDriveRobot:
         self.floor_sensor = FloorColorSensor()
         self.back_up = 0 # counter for backing up
 
+    def fitness() -> float:
+        return random.randint(0, 100)
+
     def predict(self, delta_time):
         self.move(delta_time)
-        # Update orientation (theta) using the robot's compass sensor
-        #compass_heading = self.compass.read_compass_heading(self.theta,self.angular_velocity, delta_time)
-
-        # Blend odometry and compass headings
-        #blended_heading = (self.odometry_weight * self.theta) + ((1-self.odometry_weight) * compass_heading)
-
-        # Update the robot's orientation
-        #self.theta = blended_heading
-
         return RobotPose(self.x, self.y, self.theta)
 
     def move(self, delta_time):
@@ -78,32 +77,6 @@ class DifferentialDriveRobot:
         self.x = estimated_pose.x
         self.y= estimated_pose.y
         self.theta = estimated_pose.theta
-
-    # def draw(self, surface):
-    #     rotated_image = pygame.transform.rotate(self.image, math.degrees(-1*self.theta))
-    #     self.rect.center = (int(self.x), int(self.y))
-    #     new_rect = rotated_image.get_rect(center=self.rect.center)
-    #     surface.blit(rotated_image, new_rect)
-
-    #      # Calculate the left and right wheel positions
-    #     half_axl = self.axl_dist
-    #     left_wheel_x = self.x - half_axl * math.sin(self.theta)
-    #     left_wheel_y = self.y + half_axl * math.cos(self.theta)
-    #     right_wheel_x = self.x + half_axl * math.sin(self.theta)
-    #     right_wheel_y = self.y - half_axl * math.cos(self.theta)
-
-    #     # Calculate the heading line end point
-    #     heading_length = 45
-    #     heading_x = self.x + heading_length * math.cos(self.theta)
-    #     heading_y = self.y + heading_length * math.sin(self.theta)
-
-    #     # Draw the axle line
-    #     pygame.draw.line(surface, (0, 255, 0), (left_wheel_x, left_wheel_y), (right_wheel_x, right_wheel_y), 3)
-
-    #     # Draw the heading line
-    #     color =  STATE_COLOR_MAP[self.type, self.state]
-    #     pygame.draw.line(surface, color, (self.x, self.y), (heading_x, heading_y), 4)
-
 
     def draw(self, surface):
         # Rotate and draw the robot image
@@ -153,36 +126,34 @@ class DifferentialDriveRobot:
     def getMotorspeeds(self):
         return (self.left_motor_speed, self.right_motor_speed)
 
-    #Exercise 6.1 make the robot explore the environment.
-    #Exercise 6.2 make the robot avoid the walls using lidar sensor data
-    def explore_environment(self, lidar_scans):
-        front_sensor = lidar_scans[0]
-        front_right_sensor_1 = lidar_scans[len(lidar_scans)//8]
-        right_sensor = lidar_scans[len(lidar_scans)//4]
-        front_left_sensor_1 = lidar_scans[len(lidar_scans)//8 * 7]
-        left_sensor = lidar_scans[len(lidar_scans)//4 * 3]
-
-        wallDistance = 200
-        speed = 1000
-        if left_sensor < wallDistance and front_left_sensor_1 < wallDistance:
-            self.set_motor_speeds(speed,0)
-        elif right_sensor < wallDistance and front_right_sensor_1 < wallDistance:
-            self.set_motor_speeds(0,speed)
-        elif front_sensor < wallDistance:
-            random_left = random.randrange(0, speed)
-            random_right = random.randrange(0, speed)
-            if random_right > random_left:
-                self.set_motor_speeds(random_left,-random_right)
-            else:
-                self.set_motor_speeds(-random_left,random_right)
+    def avoid_robot_model(self, other_robots, environment):
+        robot_pose = self.get_robot_position()
+        (robot_found, location) = self.camera_sensor.detect(robot_pose, other_robots, SEEKER_COLOR)
+        self.floor_sensor.detect_color(robot_pose, environment)
+        floor_color = self.floor_sensor.get_color()
+        left, right, center = 0, 0, 0
+        if location == "left":
+            left = 1
+        elif location == "right":
+            right = 1
         else:
-            self.set_motor_speeds(speed * (1 -(1/front_left_sensor_1)), speed - (1 + (1/front_right_sensor_1)))
+            center = 1
+
+        robot_found_bool = 0
+        if robot_found is not None:
+            robot_found_bool = 1
+
+        output = self.avoid_model.forward(left, right, center, robot_found_bool, floor_color)
+        left_wheel, right_wheel = output[0].item() * MAX_WHEEL_SPEED, output[1].item() * MAX_WHEEL_SPEED
+        self.set_motor_speeds(left_wheel, right_wheel)
+
+
 
     def avoid_robot(self, other_robots, environment):
         turn_speed = MAX_WHEEL_SPEED/5
         # (robot_found, location) = self.is_there_a_robot(*self.get_robot_position())
         robot_pose = self.get_robot_position()
-        # (robot_found, location) = self.camera_sensor.detect(robot_pose, other_robots)
+        (robot_found, location) = self.camera_sensor.detect(robot_pose, other_robots, SEEKER_COLOR)
         # if robot_found:
         #     if location == "left":
         #         self.set_motor_speeds(-turn_speed, turn_speed)
@@ -232,7 +203,7 @@ class DifferentialDriveRobot:
         turn_speed = MAX_WHEEL_SPEED/5
         # (robot_found, location) = self.is_there_a_robot(*self.get_robot_position())
         robot_pose = self.get_robot_position()
-        (location, other_robot) = self.camera_sensor.detect(robot_pose, other_robots)
+        (location, other_robot) = self.camera_sensor.detect(robot_pose, other_robots, AVOIDER_COLOR)
 
         # check if all robots are in the caught state
         all_caught = True

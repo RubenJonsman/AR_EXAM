@@ -68,14 +68,14 @@ class CameraSensor:
         else:
             return "left"
 
-    def detect(self, robot_pose, other_robots):
+    def detect(self, robot_pose, other_robots, object_color):
         polygon, _ = self.create_view_frustum(robot_pose)
 
         # Check for other robots in the view frustum
         for other_robot in other_robots:
             other_robot_pose = other_robot.get_robot_position()
             if polygon.contains(Point(other_robot_pose.x, other_robot_pose.y)):
-                if self.get_color(other_robot) == AVOIDER_COLOR:
+                if self.get_color(other_robot) == object_color:
                     dir = self.object_direction(robot_pose, other_robot_pose)
                     return dir, other_robot
 

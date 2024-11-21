@@ -6,7 +6,7 @@ from pygame.locals import QUIT, KEYDOWN
 from environment import Environment
 from robot import DifferentialDriveRobot
 from robot_pose import RobotPose
-from constants import AVOIDER, BLACK_WALL_ZONE, CAUGHT_STATE, PADDING, SEEKER, WIDTH, HEIGHT
+from constants import AVOIDER, BLACK_WALL_ZONE, CAUGHT_STATE, CONCURRENT_GAMES, EPISODE_TIME, PADDING, SEEKER, WIDTH, HEIGHT
 
 class GameBoard:
   def __init__(self):
@@ -14,7 +14,9 @@ class GameBoard:
     pygame.init()
 
     self.env = Environment(WIDTH, HEIGHT)
-    self.games = 2
+    self.games = CONCURRENT_GAMES
+
+    self.trainingTime = EPISODE_TIME
 
     offset = 20 + PADDING
 
@@ -67,7 +69,8 @@ class GameBoard:
           if idx != 0:
             if r.state != CAUGHT_STATE:
               other_robots = [robot for i, robot in enumerate(self.gamesRobots[game]) if i != idx]
-              r.avoid_robot(other_robots, self.env)
+              # r.avoid_robot(other_robots, self.env)
+              r.avoid_robot_model(other_robots, self.env)
             else:
               r.set_motor_speeds(0, 0)
           # This is the odometry where we use the wheel size and speed to calculate
@@ -76,12 +79,8 @@ class GameBoard:
 
           # Generate Lidar scans - for these exercises, you will be given these.
           lidar_scans, _intersect_points = self.lidar.generate_scans(robot_pose, self.env.get_environment())
-          # EXERCISE 6.1: make the robot move and navigate the environment based on our current sensor information and our current map.
 
           r.update_robot_state_based_on_floor_color(self.env, robot_pose)
-          # print(self.robots[0].floor_sensor.get_color())
-
-        # EXERCISE 6.1: make the robot move and navigate the environment based on our current sensor information and our current map.
 
         if self.USE_VISUALIZATION:
           self.screen.fill((0, 0, 0))
