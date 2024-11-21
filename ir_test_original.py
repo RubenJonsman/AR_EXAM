@@ -4,10 +4,6 @@ seeker_program = """
 var send_interval = 200  # time in milliseconds
 timer.period[0] = send_interval
 
-leds.top = [32, 0, 0]
-leds.bottom.left = [32, 0, 0]
-leds.bottom.right = [32, 0, 0]
-
 call prox.comm.enable(1)
 onevent timer0
     prox.comm.tx = 1
@@ -17,7 +13,6 @@ avoider_program = """
 var send_interval = 200  # time in milliseconds
 timer.period[0] = send_interval
 call prox.comm.enable(1)
-leds.top = [0, 32, 0]
 
 timer.period[0] = send_interval
 

@@ -88,6 +88,9 @@ with ClientAsync() as client:
 
                     message = node.v.prox.comm.rx
                     print(f"message from Thymio: {message}")
+                    print(f"Proximity sensors available: {hasattr(node.v, 'prox')}")
+                    print(f"Communication available: {hasattr(node.v.prox, 'comm')}")
+                    print(f"All variables: {dir(node.v)}")
 
                     if sum(prox_values) > 20000:
                         break
