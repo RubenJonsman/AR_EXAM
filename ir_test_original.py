@@ -1,13 +1,8 @@
 from tdmclient import ClientAsync
-from led_change import change_color
 
 seeker_program = """
-var send_interval = 500  # time in milliseconds
+var send_interval = 200  # time in milliseconds
 timer.period[0] = send_interval
-
-leds.top = [32, 0, 0]
-leds.bottom.left = [32, 0, 0]
-leds.bottom.right = [32, 0, 0]
 
 call prox.comm.enable(1)
 onevent timer0
@@ -18,7 +13,6 @@ avoider_program = """
 var send_interval = 200  # time in milliseconds
 timer.period[0] = send_interval
 call prox.comm.enable(1)
-leds.top = [0, 32, 0]
 
 timer.period[0] = send_interval
 
@@ -34,16 +28,6 @@ onevent prox.comm
     
 """
 
-def role_definer(role="seeker"):
-    if role == "seeker":
-        return seeker_program
-    elif role == "avoider":
-        return avoider_program
-    else:
-        raise ValueError("Invalid role. Choose 'seeker' or 'avoider'.")
-
-ROLE = "seeker"
-
 with ClientAsync() as client:
     with ClientAsync() as client:
 
@@ -55,7 +39,7 @@ with ClientAsync() as client:
             # Lock the node representing the Thymio to ensure exclusive access.
             with await client.lock() as node:
                 # Compile and send the program to the Thymio.
-                error = await node.compile(role_definer(ROLE))
+                error = await node.compile(seeker_program)
                 if error is not None:
                     print(f"Compilation error: {error['error_msg']}")
                 else:
@@ -66,15 +50,6 @@ with ClientAsync() as client:
                 # Wait for the robot's proximity sensors to be ready.
                 await node.wait_for_variables({"prox.horizontal"})
                 print("Thymio started successfully!")
-
-                if ROLE == "seeker":
-                    await change_color(node, "red")
-                    await node.run()
-                    await client.sleep(2)
-                elif ROLE == "avoider":
-                    await change_color(node, "green")
-                    await node.run()
-                    await client.sleep(2)
 
                 while True:
                     # get the values of the proximity sensors
@@ -88,9 +63,6 @@ with ClientAsync() as client:
 
                     message = node.v.prox.comm.rx
                     print(f"message from Thymio: {message}")
-                    print(f"Proximity sensors available: {hasattr(node.v, 'prox')}")
-                    print(f"Communication available: {hasattr(node.v.prox, 'comm')}")
-                    print(f"All variables: {dir(node.v)}")
 
                     if sum(prox_values) > 20000:
                         break
