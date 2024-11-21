@@ -229,6 +229,17 @@ class DifferentialDriveRobot:
         # (robot_found, location) = self.is_there_a_robot(*self.get_robot_position())
         robot_pose = self.get_robot_position()
         (location, other_robot) = self.camera_sensor.detect(robot_pose, other_robots)
+
+        # check if all robots are in the caught state
+        all_caught = True
+        for robot in other_robots:
+            if robot.state != CAUGHT_STATE:
+                all_caught = False
+                break
+        if all_caught:
+            self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
+            return
+
         if other_robot is not None:
             if location == "left":
                 self.set_motor_speeds(-turn_speed, turn_speed)
@@ -248,7 +259,7 @@ class DifferentialDriveRobot:
                 self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
                 self.back_up -= 1
                 return
-            
+
             if floor_color == BLACK_WALL_ZONE:
                 self.back_up = 100
             else:

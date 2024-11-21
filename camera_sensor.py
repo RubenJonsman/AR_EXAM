@@ -21,16 +21,16 @@ class CameraSensor:
 
     def create_view_frustum(self, robot_pose):
         # Define the base dimensions of the camera trapezoid relative to the robot
-        base_width = self.camera_range * 0.5  # Half-width at the base
-        top_width = self.camera_range * 0.2  # Half-width at the top
+        top_width = self.camera_range * 0.5  # Half-width at the top
+        base_width = self.camera_range * 0.05  # Half-width at the base
         height = self.camera_range           # Depth of the trapezoid
         
         # Vertices of the trapezoid before rotation (robot at origin)
         trapezoid_vertices = [
-            (-base_width, height),  # Bottom left
-            (base_width, height),   # Bottom right
-            (top_width, 0),         # Top right
-            (-top_width, 0),        # Top left
+            (-top_width, height),  # Bottom left
+            (top_width, height),   # Bottom right
+            (base_width, 0),         # Top right
+            (-base_width, 0),        # Top left
         ]
 
         # Rotate and translate trapezoid to match robot's position and orientation
