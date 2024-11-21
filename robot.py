@@ -3,7 +3,7 @@ import pygame
 import math
 import random
 import numpy as np
-from constants import CAMERA_RANGE, MAX_WHEEL_SPEED, STATE_COLOR_MAP, DEFAULT_STATE, GREY_DANGER_ZONE, SAFE_STATE, SILVER_SAFE_ZONE
+from constants import BLACK_WALL_ZONE, CAMERA_RANGE, MAX_WHEEL_SPEED, STATE_COLOR_MAP, DEFAULT_STATE, GREY_DANGER_ZONE, SAFE_STATE, SILVER_SAFE_ZONE
 from shapely.geometry import  Polygon
 from camera_sensor import CameraSensor
 from environment import Environment
@@ -35,6 +35,7 @@ class DifferentialDriveRobot:
         self.camera_sensor = CameraSensor(camera_range=CAMERA_RANGE)
 
         self.floor_sensor = FloorColorSensor()
+        self.back_up = 0
 
     def predict(self, delta_time):
         self.move(delta_time)
@@ -52,7 +53,6 @@ class DifferentialDriveRobot:
     def move(self, delta_time):
         # Assume maximum linear velocity at motor speed 500
         v_max = 10  # pixels/second
-
         # Calculate the linear velocity of each wheel
         left_wheel_velocity = (self.left_motor_speed / 500) * v_max
         right_wheel_velocity = (self.right_motor_speed / 500) * v_max
@@ -130,7 +130,7 @@ class DifferentialDriveRobot:
         pygame.draw.line(surface, color, (self.x, self.y), (heading_x, heading_y), 4)
 
         # Add trapezoid for the camera view
-        _, camera_point_list  = self.camera_sensor.create_view_frustum(self.x, self.y, self.theta)
+        _, camera_point_list  = self.camera_sensor.create_view_frustum(self.get_robot_position())
 
         # Draw the trapezoid
         pygame.draw.polygon(surface, (255, 0, 0, 100), camera_point_list, width=1)
@@ -176,11 +176,11 @@ class DifferentialDriveRobot:
             self.set_motor_speeds(speed * (1 -(1/front_left_sensor_1)), speed - (1 + (1/front_right_sensor_1)))
 
 
-    def seek_robot(self, other_robots):
+    def seek_robot(self, other_robots, environment):
         turn_speed = MAX_WHEEL_SPEED/5
         # (robot_found, location) = self.is_there_a_robot(*self.get_robot_position())
-        robot_pos = self.get_robot_position()
-        (robot_found, location) = self.camera_sensor.detect(robot_pos.x, robot_pos.y, robot_pos.theta, other_robots)
+        robot_pose = self.get_robot_position()
+        (robot_found, location) = self.camera_sensor.detect(robot_pose, other_robots)
         if robot_found:
             if location == "left":
                 self.set_motor_speeds(-turn_speed, turn_speed)
@@ -189,15 +189,29 @@ class DifferentialDriveRobot:
             else:
                 self.set_motor_speeds(MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
         else:
-            left_wheel = random.randint(0, MAX_WHEEL_SPEED)
-            right_wheel = random.randint(0, MAX_WHEEL_SPEED)
-            self.set_motor_speeds(left_wheel, right_wheel)
+            self.floor_sensor.detect_color(robot_pose, environment)
+            floor_color = self.floor_sensor.get_color()
+            if self.back_up > 50:
+                self.set_motor_speeds(-MAX_WHEEL_SPEED, -MAX_WHEEL_SPEED)
+                self.back_up -= 1
+                return
+            if self.back_up > 0:
+                self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
+                self.back_up -= 1
+                return
+            
+            if floor_color == BLACK_WALL_ZONE:
+                self.back_up = 100
+            else:
+                left_wheel = random.randint(0, MAX_WHEEL_SPEED)
+                right_wheel = random.randint(0, MAX_WHEEL_SPEED)
+                self.set_motor_speeds(left_wheel, right_wheel)
 
 
 
     def manual_control(self, keys):
-        speed = 1200  # Define the base speed for manual control
-        turn_speed = 500  # Define the turning speed
+        speed = MAX_WHEEL_SPEED  # Define the base speed for manual control
+        turn_speed = MAX_WHEEL_SPEED / 10  # Define the turning speed
 
         if keys[pygame.K_UP]:
             self.set_motor_speeds(speed, speed)  # Move forward
