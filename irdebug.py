@@ -7,6 +7,11 @@ timer.period[0] = send_interval
 call prox.comm.enable(1)
 onevent timer0
     prox.comm.tx = 1
+
+onevent prox.comm
+    # Only checking for received signal
+    # Removed LED changes
+
 """
 
 avoider_program = """
@@ -59,20 +64,22 @@ with ClientAsync() as client:
 
                     message = node.v.prox.comm.rx
                     print(f"message from Thymio: {message}")
+                    if message == 1:
+                        print("**** There is a seeker around ****")
+                    elif message == 2:
+                        print("**** There is an avoider around ****")
+                    elif message == 0:
+                        print("**** No one is around ****")
 
                     if sum(prox_values) > 20000:
                         break
 
                     node.flush()  # Send the set commands to the robot.
 
-                    await client.sleep(1)  # Pause for 0.3 seconds before the next iteration.
+                    await client.sleep(1)  # Pause for 1 second
 
                 # Once out of the loop, stop the robot and set the top LED to red.
                 print("Thymio stopped successfully!")
-                node.v.motor.left.target = 0
-                node.v.motor.right.target = 0
-                node.v.leds.top = [32, 0, 0]
-                node.flush()
 
 
         # Run the asynchronous function to control the Thymio.
