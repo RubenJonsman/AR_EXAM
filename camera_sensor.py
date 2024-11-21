@@ -58,7 +58,6 @@ class CameraSensor:
         # Rotate object position by negative self_theta to align with robot's forward direction
         local_x = -math.sin(self_theta) * dx + math.cos(self_theta) * dy  # Lateral offset
         
-        
         threshold = 15 # tune such that center is actually center
 
         # Determine direction based on the local_y coordinate
@@ -78,9 +77,9 @@ class CameraSensor:
             if polygon.contains(Point(other_robot_pose.x, other_robot_pose.y)):
                 if self.get_color(other_robot) == AVOIDER_COLOR:
                     dir = self.object_direction(robot_pose, other_robot_pose)
-                    return True, dir
+                    return dir, other_robot
 
-        return False, None
+        return None, None
 
     def get_color(self, robot):
         return  STATE_COLOR_MAP[robot.type, robot.state]
