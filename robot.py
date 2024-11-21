@@ -1,15 +1,18 @@
 import pygame
-#from sensors import CompassSensor  # Import the LidarSensor class
+# from sensors import CompassSensor  # Import the LidarSensor class
 import math
 import random
 import numpy as np
 from avoid_robot_model import AvoidModel
-from constants import AVOIDER, AVOIDER, AVOIDER_COLOR, BLACK_WALL_ZONE, CAMERA_RANGE, CAUGHT_STATE, MAX_BACKUP, MAX_WHEEL_SPEED, SEEKER_COLOR, STATE_COLOR_MAP, DEFAULT_STATE, GREY_DANGER_ZONE, SAFE_STATE, SILVER_SAFE_ZONE, INPUT_SIZE, HIDDEN_SIZE
-from shapely.geometry import  Polygon
+from constants import AVOIDER, AVOIDER, AVOIDER_COLOR, BLACK_WALL_ZONE, CAMERA_RANGE, CAUGHT_STATE, MAX_BACKUP, \
+    MAX_WHEEL_SPEED, SEEKER_COLOR, STATE_COLOR_MAP, DEFAULT_STATE, GREY_DANGER_ZONE, SAFE_STATE, SILVER_SAFE_ZONE, \
+    INPUT_SIZE, HIDDEN_SIZE
+from shapely.geometry import Polygon
 from camera_sensor import CameraSensor
 from environment import Environment
 from floor_color_sensor import FloorColorSensor
 from robot_pose import RobotPose
+
 
 class DifferentialDriveRobot:
     def __init__(self, x, y, theta, image_path, type, axl_dist=5, wheel_radius=2.2):
@@ -24,13 +27,13 @@ class DifferentialDriveRobot:
         self.angular_velocity = 0
         self.linear_velocity = 0
 
-        self.type = type # 0 avoider or 1 seeker
-        self.state = DEFAULT_STATE # 0 default, 1 safe, 2 caught
+        self.type = type  # 0 avoider or 1 seeker
+        self.state = DEFAULT_STATE  # 0 default, 1 safe, 2 caught
         self.avoid_model = None
-        
+
         if self.type == AVOIDER:
             self.avoid_model = AvoidModel(INPUT_SIZE, HIDDEN_SIZE)
-            
+
         self.landmarks = []
         self.left_motor_speed = 0
         self.right_motor_speed = 0
@@ -40,7 +43,7 @@ class DifferentialDriveRobot:
         self.camera_sensor = CameraSensor(camera_range=CAMERA_RANGE)
 
         self.floor_sensor = FloorColorSensor()
-        self.back_up = 0 # counter for backing up
+        self.back_up = 0  # counter for backing up
 
     def fitness() -> float:
         return random.randint(0, 100)
@@ -64,18 +67,16 @@ class DifferentialDriveRobot:
         self.y += (v_y * delta_time)
         self.theta += (omega * delta_time)
 
-
     def set_motor_speeds(self, left_motor_speed, right_motor_speed):
         self.left_motor_speed = left_motor_speed
         self.right_motor_speed = right_motor_speed
-
 
     def get_robot_position(self):
         return RobotPose(self.x, self.y, self.theta)
 
     def update_estimated_position(self, estimated_pose):
         self.x = estimated_pose.x
-        self.y= estimated_pose.y
+        self.y = estimated_pose.y
         self.theta = estimated_pose.theta
 
     def draw(self, surface):
@@ -103,7 +104,7 @@ class DifferentialDriveRobot:
         pygame.draw.line(surface, color, (self.x, self.y), (heading_x, heading_y), 4)
 
         # Add trapezoid for the camera view
-        _, camera_point_list  = self.camera_sensor.create_view_frustum(self.get_robot_position())
+        _, camera_point_list = self.camera_sensor.create_view_frustum(self.get_robot_position())
 
         # Draw the trapezoid
         pygame.draw.polygon(surface, (255, 0, 0, 100), camera_point_list, width=1)
@@ -147,10 +148,11 @@ class DifferentialDriveRobot:
         left_wheel, right_wheel = output[0].item() * MAX_WHEEL_SPEED, output[1].item() * MAX_WHEEL_SPEED
         self.set_motor_speeds(left_wheel, right_wheel)
 
-
+        reward = self.avoid_model.fitness_function()
+        return reward
 
     def avoid_robot(self, other_robots, environment):
-        turn_speed = MAX_WHEEL_SPEED/5
+        turn_speed = MAX_WHEEL_SPEED / 5
         # (robot_found, location) = self.is_there_a_robot(*self.get_robot_position())
         robot_pose = self.get_robot_position()
         (robot_found, location) = self.camera_sensor.detect(robot_pose, other_robots, SEEKER_COLOR)
@@ -170,7 +172,7 @@ class DifferentialDriveRobot:
                 self.back_up = MAX_BACKUP
             else:
                 self.set_motor_speeds(MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
-                self.back_up =0
+                self.back_up = 0
 
         if self.back_up > MAX_BACKUP // 2:
             self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
@@ -180,7 +182,7 @@ class DifferentialDriveRobot:
             self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
             self.back_up -= 1
             return
-        
+
         left_wheel = random.randint(0, MAX_WHEEL_SPEED)
         right_wheel = random.randint(0, MAX_WHEEL_SPEED)
         self.set_motor_speeds(left_wheel, right_wheel)
@@ -200,7 +202,7 @@ class DifferentialDriveRobot:
             other_robot.state = CAUGHT_STATE
 
     def seek_robot(self, other_robots, environment):
-        turn_speed = MAX_WHEEL_SPEED/5
+        turn_speed = MAX_WHEEL_SPEED / 5
         # (robot_found, location) = self.is_there_a_robot(*self.get_robot_position())
         robot_pose = self.get_robot_position()
         (location, other_robot) = self.camera_sensor.detect(robot_pose, other_robots, AVOIDER_COLOR)
@@ -241,12 +243,10 @@ class DifferentialDriveRobot:
                 self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
                 self.back_up -= 1
                 return
-            
+
             left_wheel = random.randint(0, MAX_WHEEL_SPEED)
             right_wheel = random.randint(0, MAX_WHEEL_SPEED)
             self.set_motor_speeds(left_wheel, right_wheel)
-
-
 
     def manual_control(self, keys):
         speed = MAX_WHEEL_SPEED  # Define the base speed for manual control
@@ -263,16 +263,16 @@ class DifferentialDriveRobot:
         else:
             self.set_motor_speeds(0, 0)  # Stop if no keys are pressed
 
-class CompassSensor:
 
-    drift_rate=0.0001
-    USE_DRIFT=False
+class CompassSensor:
+    drift_rate = 0.0001
+    USE_DRIFT = False
 
     def __init__(self, noise_stddev=0.0001) -> None:
         self.noise_level = noise_stddev
 
     def read_compass_heading(self, start_heading, angular_velocity, delta_time):
-         # Update orientation (theta) based on angular velocity
+        # Update orientation (theta) based on angular velocity
         start_heading += angular_velocity * delta_time
 
         # Ensure the orientation is within the range [0, 2*pi)
