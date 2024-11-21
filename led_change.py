@@ -28,7 +28,7 @@ call leds.bottom.left(32,0,0)
 call leds.bottom.right(32,0,0)
 """
 
-def change_color(node, color):
+async def change_color(node, color):
     """
     Change the color of the LED
     Parameters:
@@ -36,10 +36,10 @@ def change_color(node, color):
     - color: the color to change to
     """
     if color == "blue":
-        return node.compile(led_blue)
+        return await node.compile(led_blue)
     elif color == "green":
-        return node.compile(led_blue)
+        return await node.compile(led_green)  # Was using led_blue for all colors
     elif color == "red":
-        return node.compile(led_blue)
+        return await node.compile(led_red)    # Was using led_blue for all colors
     else:
         return None
