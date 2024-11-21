@@ -51,14 +51,14 @@ class GameBoard:
       for event in pygame.event.get():
         if event.type == QUIT:
           running = False
-
+      
       keys = pygame.key.get_pressed()
 
       # Calculate timestep
       time_step = (pygame.time.get_ticks() - self.last_time) / 1000
       self.last_time = pygame.time.get_ticks()
 
-      self.robots[0].manual_control(keys)
+      self.robots[0].seek_robot(self.robots[1:], self.env)
 
       for r in self.robots:
 
@@ -75,7 +75,7 @@ class GameBoard:
 
       # EXERCISE 6.1: make the robot move and navigate the environment based on our current sensor information and our current map.
       
-      self.robots[0].seek_robot(self.robots[1:])
+      self.robots[0].seek_robot(self.robots[1:], self.env)
 
       if self.USE_VISUALIZATION:
         self.screen.fill((0, 0, 0))

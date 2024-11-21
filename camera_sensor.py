@@ -19,7 +19,7 @@ class CameraSensor:
                 
     #     return False, None
 
-    def create_view_frustum(self, x, y, theta):
+    def create_view_frustum(self, robot_pose):
         # Define the base dimensions of the camera trapezoid relative to the robot
         base_width = self.camera_range * 0.5  # Half-width at the base
         top_width = self.camera_range * 0.2  # Half-width at the top
@@ -35,29 +35,50 @@ class CameraSensor:
 
         # Rotate and translate trapezoid to match robot's position and orientation
         rotated_vertices = []
-        theta -= math.pi /2
+        theta =robot_pose.theta - math.pi /2
         for vx, vy in trapezoid_vertices:
             # Apply rotation using the robot's theta
-            rotated_x = x + (vx * math.cos(theta) - vy * math.sin(theta))
-            rotated_y = y + (vx * math.sin(theta) + vy * math.cos(theta))
+            rotated_x = robot_pose.x + (vx * math.cos(theta) - vy * math.sin(theta))
+            rotated_y = robot_pose.y + (vx * math.sin(theta) + vy * math.cos(theta))
             rotated_vertices.append((rotated_x, rotated_y))
 
         # Create the view frustum polygon
         polygon = Polygon(rotated_vertices)
         return polygon, rotated_vertices
+    
+    def object_direction(self, self_pose, object_pose):
+        self_x, self_y, self_theta = self_pose.x, self_pose.y, self_pose.theta
+        
+        object_x, object_y = object_pose.x, object_pose.y
+        
+        # Translate object position to robot's local frame
+        dx = object_x - self_x
+        dy = object_y - self_y
+        
+        # Rotate object position by negative self_theta to align with robot's forward direction
+        local_x = -math.sin(self_theta) * dx + math.cos(self_theta) * dy  # Lateral offset
+        
+        
+        threshold = 15 # tune such that center is actually center
 
+        # Determine direction based on the local_y coordinate
+        if abs(local_x) <= threshold:
+            return "center"
+        elif local_x > 0:
+            return "right"
+        else:
+            return "left"
 
-    def detect(self, x, y, theta, other_robots):
-        polygon, _ = self.create_view_frustum(x, y, theta)
+    def detect(self, robot_pose, other_robots):
+        polygon, _ = self.create_view_frustum(robot_pose)
 
         # Check for other robots in the view frustum
         for other_robot in other_robots:
-            other_robot_pos = other_robot.get_robot_position()
-            x, y, theta = other_robot_pos.x, other_robot_pos.y, other_robot_pos.theta
-            if polygon.contains(Point(x, y)):
+            other_robot_pose = other_robot.get_robot_position()
+            if polygon.contains(Point(other_robot_pose.x, other_robot_pose.y)):
                 if self.get_color(other_robot) == AVOIDER_COLOR:
-                    print("Avoider detected")
-                    return True, (x, y, theta)
+                    dir = self.object_direction(robot_pose, other_robot_pose)
+                    return True, dir
 
         return False, None
 
