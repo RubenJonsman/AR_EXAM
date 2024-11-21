@@ -20,7 +20,7 @@ https://learnit.itu.dk/pluginfile.php/400034/mod_resource/content/1/tag-project.
 3. Password: RGA2
 4. Connect through this:
 - ssh RGA2@RGA2.local
-- ssh RGA2@192.168.74.20
+- ssh RGA2@192.168.74.17
 
 ------------------------------
 
@@ -39,7 +39,10 @@ Todo:
 
     - [x] Robot LED (What state it is in)
 
-    - [ ] Robot InfraRed communication
+    - [!!!] Robot InfraRed communication
+		- Still doesnt work
+		- Approx sensor are reading: irsensing.py
+		- use the original code: ir_test_original.py
 
     - [ ] Robot detect safe-zone
 
