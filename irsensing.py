@@ -2,7 +2,7 @@ from tdmclient import ClientAsync
 
 sensor_program = """
 # Initialize timer
-timer.period[0] = 100  # 100ms interval
+timer.period[0] = 1000  # 100ms interval
 
 # Enable proximity sensors
 call prox.comm.enable(1)
@@ -42,7 +42,7 @@ with ClientAsync() as client:
                    print(f"Back Right              : {back_right}")
                    print("-" * 40)  # Separator line
                    
-                   await client.sleep(0.1)  # Wait 100ms before next reading
+                   await client.sleep(1)
                    
                except Exception as e:
                    print(f"Error reading sensors: {e}")

@@ -20,12 +20,8 @@ onevent timer0
     prox.comm.tx = 2
     
 onevent prox.comm
-    if prox.comm.rx == 1 then
-        leds.top = [32, 0, 32]
-        leds.bottom.left = [32, 0, 32]
-        leds.bottom.right = [32, 0, 32]
-    end
-    
+    # Only checking for received signal
+    # Removed LED changes
 """
 
 with ClientAsync() as client:
@@ -69,7 +65,7 @@ with ClientAsync() as client:
 
                     node.flush()  # Send the set commands to the robot.
 
-                    await client.sleep(0.3)  # Pause for 0.3 seconds before the next iteration.
+                    await client.sleep(1)  # Pause for 0.3 seconds before the next iteration.
 
                 # Once out of the loop, stop the robot and set the top LED to red.
                 print("Thymio stopped successfully!")

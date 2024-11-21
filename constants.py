@@ -59,3 +59,10 @@ CONCURRENT_GAMES = 2
 EPISODE_TIME = 20 # seconds
 INPUT_SIZE = 5
 HIDDEN_SIZE = 10
+
+
+# REFLECTIVE SENSOR VALUES
+# GREY L: 663, 665,
+# GREY R: 517, 520,
+# BLACK L: 107, 106, 95 (getting closer at 300)
+# BLACK R: 101, 88 (getting closer at 375)
