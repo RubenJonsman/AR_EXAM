@@ -3,7 +3,7 @@ import pygame
 import math
 import random
 import numpy as np
-from constants import BLACK_WALL_ZONE, CAMERA_RANGE, CAUGHT_STATE, MAX_WHEEL_SPEED, STATE_COLOR_MAP, DEFAULT_STATE, GREY_DANGER_ZONE, SAFE_STATE, SILVER_SAFE_ZONE
+from constants import BLACK_WALL_ZONE, CAMERA_RANGE, CAUGHT_STATE, MAX_BACKUP, MAX_WHEEL_SPEED, STATE_COLOR_MAP, DEFAULT_STATE, GREY_DANGER_ZONE, SAFE_STATE, SILVER_SAFE_ZONE
 from shapely.geometry import  Polygon
 from camera_sensor import CameraSensor
 from environment import Environment
@@ -178,7 +178,6 @@ class DifferentialDriveRobot:
         else:
             self.set_motor_speeds(speed * (1 -(1/front_left_sensor_1)), speed - (1 + (1/front_right_sensor_1)))
 
-
     def avoid_robot(self, other_robots, environment):
         turn_speed = MAX_WHEEL_SPEED/5
         # (robot_found, location) = self.is_there_a_robot(*self.get_robot_position())
@@ -194,8 +193,16 @@ class DifferentialDriveRobot:
         # else:
         self.floor_sensor.detect_color(robot_pose, environment)
         floor_color = self.floor_sensor.get_color()
-        if self.back_up > 50:
-            self.set_motor_speeds(-MAX_WHEEL_SPEED, -MAX_WHEEL_SPEED)
+
+        if floor_color == BLACK_WALL_ZONE:
+            if self.back_up == 0:
+                self.back_up = MAX_BACKUP
+            else:
+                self.set_motor_speeds(MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
+                self.back_up =0
+
+        if self.back_up > MAX_BACKUP // 2:
+            self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
             self.back_up -= 1
             return
         if self.back_up > 0:
@@ -203,12 +210,9 @@ class DifferentialDriveRobot:
             self.back_up -= 1
             return
         
-        if floor_color == BLACK_WALL_ZONE:
-            self.back_up = 100
-        else:
-            left_wheel = random.randint(0, MAX_WHEEL_SPEED)
-            right_wheel = random.randint(0, MAX_WHEEL_SPEED)
-            self.set_motor_speeds(left_wheel, right_wheel)
+        left_wheel = random.randint(0, MAX_WHEEL_SPEED)
+        right_wheel = random.randint(0, MAX_WHEEL_SPEED)
+        self.set_motor_speeds(left_wheel, right_wheel)
 
     def get_distance_to_robot(self, other_robot):
         selfPos = self.get_robot_position()
@@ -251,21 +255,25 @@ class DifferentialDriveRobot:
         else:
             self.floor_sensor.detect_color(robot_pose, environment)
             floor_color = self.floor_sensor.get_color()
-            if self.back_up > 50:
-                self.set_motor_speeds(-MAX_WHEEL_SPEED, -MAX_WHEEL_SPEED)
+            if floor_color == BLACK_WALL_ZONE:
+                if self.back_up == 0:
+                    self.back_up = MAX_BACKUP
+                else:
+                    self.set_motor_speeds(MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
+                    self.back_up = 0
+
+            if self.back_up > MAX_BACKUP // 2:
+                self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
                 self.back_up -= 1
                 return
             if self.back_up > 0:
                 self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
                 self.back_up -= 1
                 return
-
-            if floor_color == BLACK_WALL_ZONE:
-                self.back_up = 100
-            else:
-                left_wheel = random.randint(0, MAX_WHEEL_SPEED)
-                right_wheel = random.randint(0, MAX_WHEEL_SPEED)
-                self.set_motor_speeds(left_wheel, right_wheel)
+            
+            left_wheel = random.randint(0, MAX_WHEEL_SPEED)
+            right_wheel = random.randint(0, MAX_WHEEL_SPEED)
+            self.set_motor_speeds(left_wheel, right_wheel)
 
 
 

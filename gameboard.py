@@ -14,6 +14,7 @@ class GameBoard:
     pygame.init()
 
     self.env = Environment(WIDTH, HEIGHT)
+    self.games = 2
 
     offset = 20 + PADDING
 
@@ -25,11 +26,11 @@ class GameBoard:
       (AVOIDER, 0 + offset, HEIGHT- offset)
     ]
 
-    # Initialize lidar and robot
-    self.robot = DifferentialDriveRobot(WIDTH/2, HEIGHT/2, 2.6, 'thymio_small.png', type=SEEKER)
-
     # spawn robots in the corners
-    self.robots = [DifferentialDriveRobot(x, y, 2.6, 'thymio_small.png', type=r_type) for r_type, x, y in self.starting_positions]
+    self.gamesRobots = [
+      [DifferentialDriveRobot(x, y, 2.6, 'thymio_small.png', type=r_type) for r_type, x, y in self.starting_positions]
+      for _ in range(self.games)
+    ]
     self.lidar = LidarSensor()
 
     # For potential visualization
@@ -58,39 +59,42 @@ class GameBoard:
       time_step = (pygame.time.get_ticks() - self.last_time) / 1000
       self.last_time = pygame.time.get_ticks()
 
-      self.robots[0].seek_robot(self.robots[1:], self.env)
+      for index in range(self.games):
+        self.gamesRobots[index][0].seek_robot(self.gamesRobots[index][1:], self.env)
       
-      for idx, r in enumerate(self.robots):
-        if idx != 0:
-          if r.state != CAUGHT_STATE:
-            other_robots = [robot for i, robot in enumerate(self.robots) if i != idx]
-            r.avoid_robot(other_robots, self.env)
-          else:
-            r.set_motor_speeds(0, 0)
-        # This is the odometry where we use the wheel size and speed to calculate
-        # where we approximately end up.
-        robot_pose = r.predict(time_step)
+      for game in range(self.games):
+        for idx, r in enumerate(self.gamesRobots[game]):
+          if idx != 0:
+            if r.state != CAUGHT_STATE:
+              other_robots = [robot for i, robot in enumerate(self.gamesRobots[game]) if i != idx]
+              r.avoid_robot(other_robots, self.env)
+            else:
+              r.set_motor_speeds(0, 0)
+          # This is the odometry where we use the wheel size and speed to calculate
+          # where we approximately end up.
+          robot_pose = r.predict(time_step)
 
-        # Generate Lidar scans - for these exercises, you will be given these.
-        lidar_scans, _intersect_points = self.lidar.generate_scans(robot_pose, self.env.get_environment())
+          # Generate Lidar scans - for these exercises, you will be given these.
+          lidar_scans, _intersect_points = self.lidar.generate_scans(robot_pose, self.env.get_environment())
+          # EXERCISE 6.1: make the robot move and navigate the environment based on our current sensor information and our current map.
+
+          r.update_robot_state_based_on_floor_color(self.env, robot_pose)
+          # print(self.robots[0].floor_sensor.get_color())
+
         # EXERCISE 6.1: make the robot move and navigate the environment based on our current sensor information and our current map.
 
-        r.update_robot_state_based_on_floor_color(self.env, robot_pose)
-        # print(self.robots[0].floor_sensor.get_color())
+        if self.USE_VISUALIZATION:
+          self.screen.fill((0, 0, 0))
+          self.env.draw(self.screen)
+          for game in range(self.games):
+            for robot in self.gamesRobots[game]:
+              robot.draw(self.screen)
 
-      # EXERCISE 6.1: make the robot move and navigate the environment based on our current sensor information and our current map.
+            if self.DRAW_LIDAR:
+              self.lidar.draw(robot_pose, _intersect_points, self.screen)
 
-      if self.USE_VISUALIZATION:
-        self.screen.fill((0, 0, 0))
-        self.env.draw(self.screen)
-        for robot in self.robots:
-          robot.draw(self.screen)
-
-        if self.DRAW_LIDAR:
-          self.lidar.draw(robot_pose, _intersect_points, self.screen)
-
-        pygame.display.flip()
-        pygame.display.update()
+            pygame.display.flip()
+            pygame.display.update()
 
     # Quit Pygame
     pygame.quit()

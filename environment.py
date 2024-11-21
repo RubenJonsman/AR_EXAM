@@ -48,10 +48,7 @@ class Environment:
     def draw(self,screen):
         # Draw the walls
         for wall in self.walls:
-            pygame.draw.line(screen,(255,0,0),(int(wall.xy[0][0]),int(wall.xy[1][0])),(int(wall.xy[0][1]),int(wall.xy[1][1])),4)# (screen, (255, 0, 0), False, wall.xy, 4)
+            pygame.draw.line(screen,(255,0,0),(int(wall.xy[0][0]),int(wall.xy[1][0])),(int(wall.xy[0][1]),int(wall.xy[1][1])),8)# (screen, (255, 0, 0), False, wall.xy, 4)
 
         for wall in self.safe_zone:
             pygame.draw.line(screen,(128,128,128),(int(wall.xy[0][0]),int(wall.xy[1][0])),(int(wall.xy[0][1]),int(wall.xy[1][1])),4)
-
-
-
