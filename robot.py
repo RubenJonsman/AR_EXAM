@@ -15,7 +15,7 @@ from robot_pose import RobotPose
 
 
 class DifferentialDriveRobot:
-    def __init__(self, x, y, theta, image_path, type, axl_dist=5, wheel_radius=2.2):
+    def __init__(self, x, y, theta, image_path, type, id, model_state, axl_dist=5, wheel_radius=2.2):
         self.x = x
         self.y = y
         self.theta = theta  # Orientation in radians
@@ -26,6 +26,7 @@ class DifferentialDriveRobot:
         self.currently_turning = 0
         self.angular_velocity = 0
         self.linear_velocity = 0
+        self.id = id
 
         self.type = type  # 0 avoider or 1 seeker
         self.state = DEFAULT_STATE  # 0 default, 1 safe, 2 caught
@@ -33,6 +34,8 @@ class DifferentialDriveRobot:
 
         if self.type == AVOIDER:
             self.avoid_model = AvoidModel(INPUT_SIZE, HIDDEN_SIZE)
+            if model_state is not None:
+                self.avoid_model.load_state_dict(model_state.state_dict())
 
         self.landmarks = []
         self.left_motor_speed = 0
@@ -44,9 +47,28 @@ class DifferentialDriveRobot:
 
         self.floor_sensor = FloorColorSensor()
         self.back_up = 0  # counter for backing up
+        self.time_survived = 0  # Track survival time
+        self.penalty = 0  # Accumulate penalties
 
-    def fitness() -> float:
-        return random.randint(0, 100)
+    def fitness_function(self) -> float:
+        # Base reward for survival
+        reward = self.time_survived * 10  # Scale survival time by a factor
+
+        # Penalty for being caught
+        if self.state == CAUGHT_STATE:
+            reward -= 500  # Large penalty for being caught
+
+        # Penalty for hitting a wall
+        if self.floor_sensor.get_color() == BLACK_WALL_ZONE:
+            reward -= 100  # Smaller penalty for hitting a wall
+
+        # Prevent reward from going below zero
+        reward = max(0, reward)
+        return reward
+
+    def update_time_survived(self, delta_time):
+        if self.state != CAUGHT_STATE:
+            self.time_survived += delta_time  # Increment survival time if not caught
 
     def predict(self, delta_time):
         self.move(delta_time)
@@ -148,7 +170,7 @@ class DifferentialDriveRobot:
         left_wheel, right_wheel = output[0].item() * MAX_WHEEL_SPEED, output[1].item() * MAX_WHEEL_SPEED
         self.set_motor_speeds(left_wheel, right_wheel)
 
-        reward = self.avoid_model.fitness_function()
+        reward = self.fitness_function()
         return reward
 
     def avoid_robot(self, other_robots, environment):

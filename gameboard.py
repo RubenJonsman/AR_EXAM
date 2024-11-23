@@ -22,7 +22,7 @@ class GameBoard:
     def __init__(self):
         # Initialize Pygame
         self.episode_start_time = None
-        self.fitness_scores = defaultdict()
+        self.fitness_scores = defaultdict(int)
         self.gamesRobots = None
         self.trend_y = None
         self.trend_x = None
@@ -37,7 +37,7 @@ class GameBoard:
         self.population_size = 4 * self.games
         self.TOP_N = self.population_size // 2
 
-        self.trainingTime = EPISODE_TIME
+        self.trainingTime = EPISODE_TIME * 1000
 
         self.mean_fitness_history = {}  # Stores mean fitness over time for visualization
         plt.ion()  # Enable interactive mode for live-updating
@@ -79,13 +79,32 @@ class GameBoard:
         # Collision notifier, that shows you if you run into a wall
         self.showEnd = True
 
-    def initialize_robots(self):
-        # spawn robots in the corners
-        self.gamesRobots = [
-            [DifferentialDriveRobot(x, y, 2.6, 'thymio_small.png', type=r_type) for r_type, x, y in
-             self.starting_positions]
-            for _ in range(self.games)
-        ]
+    def initialize_robots(self, models=None):
+        """
+        Initialize robots for each game.
+        If models are provided, assign them to the robots.
+
+        Parameters:
+        - models (list): A list of models to assign to the robots. If None, robots are initialized without models.
+        """
+        robot_id = 0
+        self.gamesRobots = []  # Initialize the main list
+        models = models or [None] * self.population_size  # Default to None if no models provided
+        model_index = 0  # Track the index in the models list
+
+        for _ in range(self.games):  # Loop over the number of games
+            game_robots = []  # List for robots in the current game
+            for r_type, x, y in self.starting_positions:  # Loop over the starting positions
+                if r_type != SEEKER:
+                    robot_model = models[model_index] if model_index < len(models) else None
+                    robot = DifferentialDriveRobot(x, y, 2.6, 'thymio_small.png', type=r_type, id=robot_id, model_state=robot_model)
+                    model_index += 1  # Increment the model index
+
+                else:
+                    robot = DifferentialDriveRobot(x, y, 2.6, 'thymio_small.png', type=r_type, id=robot_id, model_state=None)
+                game_robots.append(robot)  # Add robot to the current game's list
+                robot_id += 1  # Increment the unique ID
+            self.gamesRobots.append(game_robots)  # Add the game's robots to the main list
 
     def update_trend_line(self):
         # Calculate trend line for the last 5 episodes if there are enough data points
@@ -108,39 +127,45 @@ class GameBoard:
         self.episode_start_time = pygame.time.get_ticks()
 
         while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
             current_time = pygame.time.get_ticks()
-            # print(current_time - self.episode_start_time, self.trainingTime)
             if (current_time - self.episode_start_time) >= self.trainingTime:
                 # Calculate mean, min, max fitness values
-                # mean_fitness = np.mean(self.fitness_scores)
-                # min_fitness = np.min(self.fitness_scores)
-                # max_fitness = np.max(self.fitness_scores)
-                #
-                # # Update live plot data
-                # self.episodes.append(episode_count)
-                # self.mean_fitness_values.append(mean_fitness)
-                # self.min_fitness_values.append(min_fitness)
-                # self.max_fitness_values.append(max_fitness)
-                #
-                # self.mean_line.set_xdata(self.episodes)
-                # self.mean_line.set_ydata(self.mean_fitness_values)
-                # self.min_line.set_xdata(self.episodes)
-                # self.min_line.set_ydata(self.min_fitness_values)
-                # self.max_line.set_xdata(self.episodes)
-                # self.max_line.set_ydata(self.max_fitness_values)
+                fitness_scored_list = list(self.fitness_scores.values())
+                robot_id_list = list(self.fitness_scores.keys())
+
+                mean_fitness = np.mean(fitness_scored_list)
+                min_fitness = np.min(fitness_scored_list)
+                max_fitness = np.max(fitness_scored_list)
+
+                # Update live plot data
+                self.episodes.append(episode_count)
+                self.mean_fitness_values.append(mean_fitness)
+                self.min_fitness_values.append(min_fitness)
+                self.max_fitness_values.append(max_fitness)
+
+                self.mean_line.set_xdata(self.episodes)
+                self.mean_line.set_ydata(self.mean_fitness_values)
+                self.min_line.set_xdata(self.episodes)
+                self.min_line.set_ydata(self.min_fitness_values)
+                self.max_line.set_xdata(self.episodes)
+                self.max_line.set_ydata(self.max_fitness_values)
 
                 # Update trend line for the last 5 episodes
-                # self.update_trend_line()
+                self.update_trend_line()
 
                 # Rescale axes based on data
-                # self.ax.relim()
-                # self.ax.autoscale_view()
-                # plt.draw()
-                # plt.pause(0.01)  # Pause to update the figure
+                self.ax.relim()
+                self.ax.autoscale_view()
+                plt.draw()
+                plt.pause(0.01)  # Pause to update the figure
 
                 episode_count += 1
                 robot_scores = {}
-                sorted_indices = np.argsort(self.fitness_scores)
+
+                sorted_indices = np.argsort(fitness_scored_list)
 
                 rank_weights = np.zeros(self.population_size)
                 rank = 2
@@ -148,7 +173,6 @@ class GameBoard:
                     rank_weights[i] = 1 / rank
                     rank += 1
                 rank_weights /= np.sum(rank_weights)
-
                 top_n_indices = sorted_indices[-self.TOP_N:]
                 all_models = np.array([model.avoid_model for model in np.array(self.gamesRobots).flatten() if
                                        model.avoid_model is not None])
@@ -161,7 +185,6 @@ class GameBoard:
                     two_robots = np.random.choice(all_models, size=2, p=rank_weights)
                     robot1_model = two_robots[0]
                     robot2_model = two_robots[1]
-                    print(type(robot1_model))
                     new_robot_1 = robot1_model.crossover(robot2_model)
                     new_robot_2 = robot2_model.crossover(robot1_model)
 
@@ -173,16 +196,22 @@ class GameBoard:
                 for model in new_models:
                     model.mutate()
 
-                robot_index = 0
-                # Reassign models to the existing robots
-                for model in np.array(self.gamesRobots).flatten():
-                    if model.avoid_model is not None:
-                        model.avoid_model = new_models[robot_index]
-                        robot_index += 1
+                # robot_index = 0
+                # # Reassign models to the existing robots
+                # for model in np.array(self.gamesRobots).flatten():
+                #     if model.avoid_model is not None:
+                #         model.avoid_model = new_models[robot_index]
+                #         robot_index += 1
+                #         print(f"Updating model for {robot_index}")
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
+                self.episode_start_time = current_time
+                self.initialize_robots(new_models)
+                self.fitness_scores = defaultdict(int)
+                for robot in np.array(self.gamesRobots).flatten():
+                    if robot.avoid_model is not None:
+                        robot.time_survived = 0
+
+
 
             # Calculate timestep
             time_step = (pygame.time.get_ticks() - self.last_time) / 1000
@@ -198,6 +227,9 @@ class GameBoard:
                             other_robots = [robot for i, robot in enumerate(self.gamesRobots[game]) if i != idx]
                             # r.avoid_robot(other_robots, self.env)
                             reward = r.avoid_robot_model(other_robots, self.env)
+                            self.fitness_scores[r.id] += reward
+                            r.time_survived += time_step
+
                             # IDK HOW TO STORE THE FITNESS VALUES because someone decided to put all the robots into the same list :upsidedown:
                         else:
                             r.set_motor_speeds(0, 0)
@@ -225,3 +257,5 @@ class GameBoard:
 
         # Quit Pygame
         pygame.quit()
+        plt.ioff()  # Turn off interactive mode
+        plt.show()  # Keep the plot open after Pygame window closes
