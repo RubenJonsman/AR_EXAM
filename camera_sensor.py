@@ -3,6 +3,8 @@ from shapely.geometry import Polygon, Point
 from constants import AVOIDER_COLOR, STATE_COLOR_MAP
 import math
 
+from robot_pose import RobotPose
+
 class CameraSensor:
     def __init__(self, camera_range = 100):
         self.camera_range = camera_range
@@ -67,6 +69,29 @@ class CameraSensor:
             return "right"
         else:
             return "left"
+    
+    def get_distance_to_wall(self, robot_pose: RobotPose, walls):
+        # Create a view frustum polygon that uses the robot's position and orientation
+        polygon, _ = self.create_view_frustum(robot_pose)
+
+        nearest_distance = float('inf')
+        nearest_wall = None
+
+        # Check if any of the walls are in the view frustum
+        for wall in walls:
+            if polygon.intersects(wall):
+                # Calculate the distance from the robot to the wall
+                # Wall = LINESTRING (50 750, 1150 750)
+                distance = robot_pose.distance_to(wall)
+                if distance < nearest_distance:
+                    nearest_distance = distance
+                    nearest_wall = wall
+
+        if nearest_wall is not None:
+            return nearest_distance, nearest_wall
+        else:
+            return None, None
+            
 
     def detect(self, robot_pose, other_robots, object_color):
         polygon, _ = self.create_view_frustum(robot_pose)

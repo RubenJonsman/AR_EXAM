@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import List
 
 import numpy as np
 import pygame
@@ -7,7 +8,7 @@ import random, math
 from matplotlib import pyplot as plt
 from scipy.stats import linregress
 from shapely import LineString, Point
-from lidar import LidarSensor
+# from lidar import LidarSensor
 from pygame.locals import QUIT, KEYDOWN
 from environment import Environment
 from robot import DifferentialDriveRobot
@@ -65,11 +66,11 @@ class GameBoard:
 
         # spawn robots in the corners
         self.initialize_robots()
-        self.lidar = LidarSensor()
+        # self.lidar = LidarSensor()
 
         # For potential visualization
         self.USE_VISUALIZATION = True
-        self.DRAW_LIDAR = False
+        # self.DRAW_LIDAR = False
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Robotics Simulation")
 
@@ -88,25 +89,32 @@ class GameBoard:
         - models (list): A list of models to assign to the robots. If None, robots are initialized without models.
         """
         robot_id = 0
-        self.gamesRobots = []  # Initialize the main list
+        self.gamesRobots: List[DifferentialDriveRobot] = []  # Initialize the main list
         models = models or [None] * self.population_size  # Default to None if no models provided
         model_index = 0  # Track the index in the models list
 
         for _ in range(self.games):  # Loop over the number of games
             game_robots = []  # List for robots in the current game
             for r_type, x, y in self.starting_positions:  # Loop over the starting positions
+                angle_to_center = math.atan2((HEIGHT / 2) - y, (WIDTH / 2) - x)
                 if r_type != SEEKER:
                     robot_model = models[model_index] if model_index < len(models) else None
-                    robot = DifferentialDriveRobot(x, y, 2.6, 'thymio_small.png', type=r_type, id=robot_id, model_state=robot_model)
+                    robot = DifferentialDriveRobot(x, y, angle_to_center, 'thymio_small.png', type=r_type, id=robot_id, model_state=robot_model)
                     model_index += 1  # Increment the model index
-
                 else:
-                    robot = DifferentialDriveRobot(x, y, 2.6, 'thymio_small.png', type=r_type, id=robot_id, model_state=None)
+                    angle_in_degrees= random.randint(0, 360)
+                    angle_in_radians = math.radians(angle_in_degrees)
+                    robot = DifferentialDriveRobot(x, y, angle_in_radians, 'thymio_small.png', type=r_type, id=robot_id, model_state=None)
+                
                 game_robots.append(robot)  # Add robot to the current game's list
                 robot_id += 1  # Increment the unique ID
             self.gamesRobots.append(game_robots)  # Add the game's robots to the main list
 
     def update_trend_line(self):
+        """
+        Update the trend line for the last 5 episodes based on mean fitness values.
+        If there are fewer than 5 episodes, the trend line is cleared.
+        """
         # Calculate trend line for the last 5 episodes if there are enough data points
         if len(self.mean_fitness_values) >= 5:
             self.recent_episodes = self.episodes[-5:]
@@ -131,10 +139,18 @@ class GameBoard:
                 if event.type == pygame.QUIT:
                     running = False
             current_time = pygame.time.get_ticks()
+            
+            # Increase training time as episode count increases, limit to maximum of 1 minute
+            self.trainingTime = min(EPISODE_TIME * 1000 + episode_count * 100, 60000)
             if (current_time - self.episode_start_time) >= self.trainingTime:
+                print(f"training time at {self.trainingTime / 1000} secs")
+
                 # Calculate mean, min, max fitness values
+
                 fitness_scored_list = list(self.fitness_scores.values())
                 robot_id_list = list(self.fitness_scores.keys())
+
+                print("fitness scores", fitness_scored_list)
 
                 mean_fitness = np.mean(fitness_scored_list)
                 min_fitness = np.min(fitness_scored_list)
@@ -226,11 +242,10 @@ class GameBoard:
                         if r.state != CAUGHT_STATE:
                             other_robots = [robot for i, robot in enumerate(self.gamesRobots[game]) if i != idx]
                             # r.avoid_robot(other_robots, self.env)
-                            reward = r.avoid_robot_model(other_robots, self.env)
-                            self.fitness_scores[r.id] += reward
+                            reward = r.avoid_robot_model(other_robots, self.env, self.trainingTime)
+                            self.fitness_scores[r.id] += reward / r.fitness_counts
                             r.time_survived += time_step
 
-                            # IDK HOW TO STORE THE FITNESS VALUES because someone decided to put all the robots into the same list :upsidedown:
                         else:
                             r.set_motor_speeds(0, 0)
                     # This is the odometry where we use the wheel size and speed to calculate
@@ -238,7 +253,7 @@ class GameBoard:
                     robot_pose = r.predict(time_step)
 
                     # Generate Lidar scans - for these exercises, you will be given these.
-                    lidar_scans, _intersect_points = self.lidar.generate_scans(robot_pose, self.env.get_environment())
+                    # lidar_scans, _intersect_points = self.lidar.generate_scans(robot_pose, self.env.get_environment())
 
                     r.update_robot_state_based_on_floor_color(self.env, robot_pose)
 
@@ -249,8 +264,8 @@ class GameBoard:
                         for robot in self.gamesRobots[game_index]:
                             robot.draw(self.screen)
 
-                        if self.DRAW_LIDAR:
-                            self.lidar.draw(robot_pose, _intersect_points, self.screen)
+                        # if self.DRAW_LIDAR:
+                        #     self.lidar.draw(robot_pose, _intersect_points, self.screen)
 
                         pygame.display.flip()
                         pygame.display.update()

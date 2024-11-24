@@ -37,6 +37,7 @@ class DifferentialDriveRobot:
             if model_state is not None:
                 self.avoid_model.load_state_dict(model_state.state_dict())
 
+        self.fitness_counts = 0
         self.landmarks = []
         self.left_motor_speed = 0
         self.right_motor_speed = 0
@@ -50,20 +51,28 @@ class DifferentialDriveRobot:
         self.time_survived = 0  # Track survival time
         self.penalty = 0  # Accumulate penalties
 
-    def fitness_function(self) -> float:
+    def fitness_function(self, training_time) -> float:
+        self.fitness_counts += 1
+        
         # Base reward for survival
-        reward = self.time_survived * 10  # Scale survival time by a factor
+        scaling_factor = 0.001
+        # reward = self.time_survived * scaling_factor  # Scale survival time by a factor
+
+
+        max_possible_reward = training_time * scaling_factor
+        reward = (self.time_survived / training_time) * max_possible_reward  # Normalize survival time by total possible time
+
 
         # Penalty for being caught
         if self.state == CAUGHT_STATE:
-            reward -= 500  # Large penalty for being caught
+            reward -= 5000  # Large penalty for being caught
 
         # Penalty for hitting a wall
         if self.floor_sensor.get_color() == BLACK_WALL_ZONE:
-            reward -= 100  # Smaller penalty for hitting a wall
+            reward -= 10000  # Smaller penalty for hitting a wall
 
         # Prevent reward from going below zero
-        reward = max(0, reward)
+        # reward = max(0, reward)
         return reward
 
     def update_time_survived(self, delta_time):
@@ -137,7 +146,7 @@ class DifferentialDriveRobot:
 
         if self.state == CAUGHT_STATE:
             return
-
+        
         if color == SILVER_SAFE_ZONE:
             self.state = SAFE_STATE
             return
@@ -149,9 +158,14 @@ class DifferentialDriveRobot:
     def getMotorspeeds(self):
         return (self.left_motor_speed, self.right_motor_speed)
 
-    def avoid_robot_model(self, other_robots, environment):
+    def avoid_robot_model(self, other_robots, environment, training_time):
         robot_pose = self.get_robot_position()
         (robot_found, location) = self.camera_sensor.detect(robot_pose, other_robots, SEEKER_COLOR)
+        distance_to_wall, nearest_wall = self.camera_sensor.get_distance_to_wall(robot_pose, environment.walls)
+
+        if distance_to_wall is None:
+            distance_to_wall = 1000
+
         self.floor_sensor.detect_color(robot_pose, environment)
         floor_color = self.floor_sensor.get_color()
         left, right, center = 0, 0, 0
@@ -166,11 +180,11 @@ class DifferentialDriveRobot:
         if robot_found is not None:
             robot_found_bool = 1
 
-        output = self.avoid_model.forward(left, right, center, robot_found_bool, floor_color)
+        output = self.avoid_model.forward(left, right, center, robot_found_bool, floor_color, distance_to_wall)
         left_wheel, right_wheel = output[0].item() * MAX_WHEEL_SPEED, output[1].item() * MAX_WHEEL_SPEED
         self.set_motor_speeds(left_wheel, right_wheel)
 
-        reward = self.fitness_function()
+        reward = self.fitness_function(training_time)
         return reward
 
     def avoid_robot(self, other_robots, environment):
@@ -220,7 +234,7 @@ class DifferentialDriveRobot:
     def tag_robot(self, other_robot):
         distance = self.get_distance_to_robot(other_robot)
         if distance < 30:
-            print("Caught", other_robot)
+            # print("Caught", other_robot)
             other_robot.state = CAUGHT_STATE
 
     def seek_robot(self, other_robots, environment):
