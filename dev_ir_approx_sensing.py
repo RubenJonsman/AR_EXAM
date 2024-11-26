@@ -31,7 +31,9 @@ with ClientAsync() as client:
                    front_right2 = node.v.prox.horizontal[4]   # Rightmost
                    back_left = node.v.prox.horizontal[5]      # Back left
                    back_right = node.v.prox.horizontal[6]     # Back right
-                   
+
+
+                   print(f"Node ID: {node.id.hex()}")
                    print("\nProximity Sensor Values:")
                    print(f"Front Left 2  (Leftmost) : {front_left2}")
                    print(f"Front Left 1  (Left)     : {front_left1}")

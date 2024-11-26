@@ -14,6 +14,33 @@ onevent prox.comm
 
 """
 
+seeker_program_flip_flop = """
+# Variables must be at the start
+var send_interval = 200  # time in milliseconds
+var current_value = 2    # Start with 2
+var counter = 0         # To track iterations
+
+# Initialize timer and enable communication
+timer.period[0] = send_interval
+call prox.comm.enable(1)
+
+onevent timer0
+    # Cycle between 2, 3, and 4
+    if counter == 0 then
+        prox.comm.tx = 2
+        counter = 1
+    elseif counter == 1 then
+        prox.comm.tx = 3
+        counter = 2
+    else
+        prox.comm.tx = 4
+        counter = 0
+    end
+
+onevent prox.comm
+"""
+
+
 avoider_program = """
 var send_interval = 200  # time in milliseconds
 timer.period[0] = send_interval
@@ -40,7 +67,7 @@ with ClientAsync() as client:
             # Lock the node representing the Thymio to ensure exclusive access.
             with await client.lock() as node:
                 # Compile and send the program to the Thymio.
-                error = await node.compile(seeker_program)
+                error = await node.compile(seeker_program_flip_flop)
                 if error is not None:
                     print(f"Compilation error: {error['error_msg']}")
                 else:
@@ -64,10 +91,12 @@ with ClientAsync() as client:
 
                     message = node.v.prox.comm.rx
                     print(f"message from Thymio: {message}")
-                    if message == 1:
-                        print("**** There is a seeker around ****")
-                    elif message == 2:
-                        print("**** There is an avoider around ****")
+                    if message == 2:
+                        print("**** Value 2 received ****")
+                    elif message == 3:
+                        print("**** Value 3 received ****")
+                    elif message == 4:
+                        print("**** Value 4 received ****")
                     elif message == 0:
                         print("**** No one is around ****")
 

@@ -41,9 +41,7 @@ Todo:
         - dev_irdebug.py
 
     - [!!!] Robot InfraRed communication
-		- Still doesnt work
-		- Approx sensor are reading: irsensing.py
-		- use the original code: ir_test_original.py
+        - dev_ir_debug.py
 
     - [x] Robot detect safe-zone
         - dev_senfloor.py
