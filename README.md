@@ -27,7 +27,7 @@ https://learnit.itu.dk/pluginfile.php/400034/mod_resource/content/1/tag-project.
 ### How to run
 
 1. Start flatpack in one windows
-'flatpak run --command=thymio-device-manager org.mobsya.ThymioSuite'
+flatpak run --command=thymio-device-manager org.mobsya.ThymioSuite
 2. Run the python command in the other one
 'python3.11 dev_LED.py'
 
