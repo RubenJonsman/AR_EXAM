@@ -31,14 +31,11 @@ flatpak run --command=thymio-device-manager org.mobsya.ThymioSuite
 2. Run the python command in the other one
 python3.11 dev_ir_debug.py
 
-
-IP address:
-
 Todo:
 - Robot
 
     - [x] Robot LED (What state it is in)
-        - dev_irdebug.py
+        - dev_LED_loop.py
 
     - [x] Robot InfraRed communication
         - dev_ir_debug.py
