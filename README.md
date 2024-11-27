@@ -29,7 +29,7 @@ https://learnit.itu.dk/pluginfile.php/400034/mod_resource/content/1/tag-project.
 1. Start flatpack in one windows
 flatpak run --command=thymio-device-manager org.mobsya.ThymioSuite
 2. Run the python command in the other one
-python3.11 dev_LED.py
+python3.11 dev_ir_debug.py
 
 
 IP address:
@@ -40,15 +40,17 @@ Todo:
     - [x] Robot LED (What state it is in)
         - dev_irdebug.py
 
-    - [!!!] Robot InfraRed communication
+    - [x] Robot InfraRed communication
         - dev_ir_debug.py
 
     - [x] Robot detect safe-zone
         - dev_senfloor.py
 
     - [ ] Robot detect other robots
+        - Based on ir signal and approx sensors? 
 
     - [ ] Robot detect other robots state
+        - Based on ir signal and color? 
 
 - Simulation
     - [x] Make map

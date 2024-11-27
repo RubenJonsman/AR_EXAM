@@ -7,11 +7,6 @@ from constants import *
 
 from tdmclient import ClientAsync
 
-GREY_DANGER_ZONE=0
-SILVER_SAFE_ZONE=1
-BLACK_WALL_ZONE=2
-REFLECTIVE_SILVER=3
-
 area_dict = {
     GREY_DANGER_ZONE: "Grey Danger Zone",
     SILVER_SAFE_ZONE: "Silver Safe Zone",
@@ -27,7 +22,7 @@ area_dict = {
 # BLACK R: 101, 88 (getting closer at 375)
 
 
-def area_color(left_sensor, right_sensor):
+def area_reader(left_sensor, right_sensor):
     if left_sensor < 300 and right_sensor < 300:
         return SILVER_SAFE_ZONE
     elif left_sensor < 900 and right_sensor < 930:
@@ -73,8 +68,8 @@ with ClientAsync() as client:
                     # You can add color detection logic here
                     # Higher values usually mean lighter colors (white)
                     # Lower values usually mean darker colors (black)
-
-                    print(area_dict[area_color(ground_left_sensor, ground_right_sensor)])
+                    _area =  area_reader(ground_left_sensor, ground_right_sensor)
+                    print(area_dict[_area])
                     print("*" * 40)  # Separator line
 
                     # if ground_left_sensor > 500 and ground_right_sensor > 500:
