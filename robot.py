@@ -6,7 +6,7 @@ import numpy as np
 from avoid_robot_model import AvoidModel
 from constants import AVOIDER, AVOIDER, AVOIDER_COLOR, BLACK_WALL_ZONE, CAMERA_RANGE, CAUGHT_STATE, MAX_BACKUP, \
     MAX_WHEEL_SPEED, SEEKER_COLOR, STATE_COLOR_MAP, DEFAULT_STATE, GREY_DANGER_ZONE, SAFE_STATE, SILVER_SAFE_ZONE, \
-    INPUT_SIZE, HIDDEN_SIZE
+    INPUT_SIZE, HIDDEN_SIZE, DRAW_FRUSTRUM
 from shapely.geometry import Polygon
 from camera_sensor import CameraSensor
 from environment import Environment
@@ -27,7 +27,7 @@ class DifferentialDriveRobot:
         self.angular_velocity = 0
         self.linear_velocity = 0
         self.id = id
-
+        self.distance_to_wall = 1000
         self.type = type  # 0 avoider or 1 seeker
         self.state = DEFAULT_STATE  # 0 default, 1 safe, 2 caught
         self.avoid_model = None
@@ -55,9 +55,7 @@ class DifferentialDriveRobot:
         self.fitness_counts += 1
         
         # Base reward for survival
-        scaling_factor = 0.001
-        # reward = self.time_survived * scaling_factor  # Scale survival time by a factor
-
+        scaling_factor = 0.01
 
         max_possible_reward = training_time * scaling_factor
         reward = (self.time_survived / training_time) * max_possible_reward  # Normalize survival time by total possible time
@@ -69,10 +67,11 @@ class DifferentialDriveRobot:
 
         # Penalty for hitting a wall
         if self.floor_sensor.get_color() == BLACK_WALL_ZONE:
-            reward -= 10000  # Smaller penalty for hitting a wall
+            reward = -10000  # Smaller penalty for hitting a wall
 
-        # Prevent reward from going below zero
-        # reward = max(0, reward)
+        if abs(self.left_motor_speed - self.right_motor_speed) > 0.5:# and (abs(left_motor_speed) + abs(right_motor_speed)) > 0.2:
+            reward -= 100  # Penalize spinning
+
         return reward
 
     def update_time_survived(self, delta_time):
@@ -138,11 +137,16 @@ class DifferentialDriveRobot:
         _, camera_point_list = self.camera_sensor.create_view_frustum(self.get_robot_position())
 
         # Draw the trapezoid
-        pygame.draw.polygon(surface, (255, 0, 0, 100), camera_point_list, width=1)
+        if DRAW_FRUSTRUM:
+            pygame.draw.polygon(surface, (255, 0, 0, 100), camera_point_list, width=1)
 
     def update_robot_state_based_on_floor_color(self, environment: Environment, robot_pose: RobotPose):
         self.floor_sensor.detect_color(environment=environment, robot_pose=robot_pose)
         color = self.floor_sensor.get_color()
+
+        if color == BLACK_WALL_ZONE and self.type == AVOIDER:
+            self.state = CAUGHT_STATE
+            return
 
         if self.state == CAUGHT_STATE:
             return
@@ -161,10 +165,9 @@ class DifferentialDriveRobot:
     def avoid_robot_model(self, other_robots, environment, training_time):
         robot_pose = self.get_robot_position()
         (robot_found, location) = self.camera_sensor.detect(robot_pose, other_robots, SEEKER_COLOR)
-        distance_to_wall, nearest_wall = self.camera_sensor.get_distance_to_wall(robot_pose, environment.walls)
-
-        if distance_to_wall is None:
-            distance_to_wall = 1000
+        self.distance_to_wall, nearest_wall = self.camera_sensor.get_distance_and_angle_to_wall(robot_pose, environment.walls)
+        if self.distance_to_wall is None:
+            self.distance_to_wall = 1000
 
         self.floor_sensor.detect_color(robot_pose, environment)
         floor_color = self.floor_sensor.get_color()
@@ -173,14 +176,13 @@ class DifferentialDriveRobot:
             left = 1
         elif location == "right":
             right = 1
-        else:
+        elif location == "center":
             center = 1
 
         robot_found_bool = 0
         if robot_found is not None:
             robot_found_bool = 1
-
-        output = self.avoid_model.forward(left, right, center, robot_found_bool, floor_color, distance_to_wall)
+        output = self.avoid_model.forward(left, right, center, robot_found_bool, floor_color, self.distance_to_wall)
         left_wheel, right_wheel = output[0].item() * MAX_WHEEL_SPEED, output[1].item() * MAX_WHEEL_SPEED
         self.set_motor_speeds(left_wheel, right_wheel)
 

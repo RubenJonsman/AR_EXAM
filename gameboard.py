@@ -16,7 +16,9 @@ from robot_pose import RobotPose
 from constants import AVOIDER, BLACK_WALL_ZONE, CAUGHT_STATE, CONCURRENT_GAMES, EPISODE_TIME, PADDING, SEEKER, WIDTH, \
     HEIGHT
 
-from avoid_robot_model import AvoidModel
+# from avoid_robot_model import AvoidModel
+from avoid_robot_model import AvoidModelRNN as AvoidModel
+import pygad
 
 
 class GameBoard:
@@ -36,7 +38,7 @@ class GameBoard:
         self.env = Environment(WIDTH, HEIGHT)
         self.games = CONCURRENT_GAMES
         self.population_size = 4 * self.games
-        self.TOP_N = self.population_size // 2
+        self.TOP_N =  self.population_size // 3
 
         self.trainingTime = EPISODE_TIME * 1000
 
@@ -59,6 +61,9 @@ class GameBoard:
         self.starting_positions = [
             (SEEKER, WIDTH / 2, HEIGHT / 2),
             (AVOIDER, WIDTH - offset, HEIGHT - offset),
+            # (AVOIDER, WIDTH - offset, HEIGHT - offset),
+            # (AVOIDER, WIDTH - offset, HEIGHT - offset),
+            # (AVOIDER, WIDTH - offset, HEIGHT - offset),
             (AVOIDER, 0 + offset, 0 + offset),
             (AVOIDER, WIDTH - offset, 0 + offset),
             (AVOIDER, 0 + offset, HEIGHT - offset)
@@ -128,6 +133,12 @@ class GameBoard:
             self.trend_line.set_xdata([])
             self.trend_line.set_ydata([])
 
+
+        
+
+        
+
+
     def visualize(self):
         # Game loop
         running = True
@@ -141,7 +152,7 @@ class GameBoard:
             current_time = pygame.time.get_ticks()
             
             # Increase training time as episode count increases, limit to maximum of 1 minute
-            self.trainingTime = min(EPISODE_TIME * 1000 + episode_count * 100, 60000)
+            self.trainingTime = min(EPISODE_TIME * 1000 + episode_count * 10, 60000)
             if (current_time - self.episode_start_time) >= self.trainingTime:
                 print(f"training time at {self.trainingTime / 1000} secs")
 
