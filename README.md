@@ -27,28 +27,27 @@ https://learnit.itu.dk/pluginfile.php/400034/mod_resource/content/1/tag-project.
 ### How to run
 
 1. Start flatpack in one windows
-'flatpak run --command=thymio-device-manager org.mobsya.ThymioSuite'
+flatpak run --command=thymio-device-manager org.mobsya.ThymioSuite
 2. Run the python command in the other one
-'python3.11 dev_LED.py'
-
-
-IP address:
+python3.11 dev_ir_debug.py
 
 Todo:
 - Robot
 
     - [x] Robot LED (What state it is in)
+        - dev_LED_loop.py
 
-    - [!!!] Robot InfraRed communication
-		- Still doesnt work
-		- Approx sensor are reading: irsensing.py
-		- use the original code: ir_test_original.py
+    - [x] Robot InfraRed communication
+        - dev_ir_debug.py
 
-    - [ ] Robot detect safe-zone
+    - [x] Robot detect safe-zone
+        - dev_senfloor.py
 
     - [ ] Robot detect other robots
+        - Based on ir signal and approx sensors? 
 
     - [ ] Robot detect other robots state
+        - Based on ir signal and color? 
 
 - Simulation
     - [x] Make map
