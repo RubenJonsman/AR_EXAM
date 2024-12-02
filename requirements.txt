@@ -5,3 +5,4 @@ shapely
 matplotlib
 scipy
 dill
+opencv-python
