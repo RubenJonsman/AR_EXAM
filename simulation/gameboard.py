@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 import pygame
 import random, math
-
+import torch
 from matplotlib import pyplot as plt
 from scipy.stats import linregress
 from shapely import LineString, Point
@@ -42,7 +42,6 @@ class GameBoard:
         self.slope = None
         self.recent_means = None
         self.recent_episodes = None
-
         pygame.init()
 
         self.env = Environment(WIDTH, HEIGHT)
@@ -80,16 +79,21 @@ class GameBoard:
         self.ax.legend()  # Show legend for lines
 
         offset = 20 + PADDING
+        offset = 100 + PADDING
 
         self.starting_positions = [
             (SEEKER, WIDTH / 2, HEIGHT / 2),
-            (AVOIDER, WIDTH - offset, HEIGHT - offset),
+            (AVOIDER, WIDTH / 2 + offset, HEIGHT / 2),
+            (AVOIDER, WIDTH / 2 + offset, HEIGHT / 2),
+            (AVOIDER, WIDTH / 2 + offset, HEIGHT / 2),
+            (AVOIDER, WIDTH / 2 + offset, HEIGHT / 2),
             # (AVOIDER, WIDTH - offset, HEIGHT - offset),
             # (AVOIDER, WIDTH - offset, HEIGHT - offset),
             # (AVOIDER, WIDTH - offset, HEIGHT - offset),
-            (AVOIDER, 0 + offset, 0 + offset),
-            (AVOIDER, WIDTH - offset, 0 + offset),
-            (AVOIDER, 0 + offset, HEIGHT - offset),
+            # (AVOIDER, WIDTH - offset, HEIGHT - offset),
+            # (AVOIDER, 0 + offset, 0 + offset),
+            # (AVOIDER, WIDTH - offset, 0 + offset),
+            # (AVOIDER, 0 + offset, HEIGHT - offset),
         ]
 
         # spawn robots in the corners
@@ -130,7 +134,9 @@ class GameBoard:
                 x,
                 y,
             ) in self.starting_positions:  # Loop over the starting positions
-                angle_to_center = math.atan2((HEIGHT / 2) - y, (WIDTH / 2) - x)
+                # angle_to_center = math.atan2((HEIGHT / 2) - y, (WIDTH / 2) - x)
+                angle_in_degrees = random.randint(0, 360)
+                angle_in_radians = math.radians(angle_in_degrees)
                 if r_type != SEEKER:
                     robot_model = (
                         models[model_index] if model_index < len(models) else None
@@ -138,7 +144,7 @@ class GameBoard:
                     robot = DifferentialDriveRobot(
                         x,
                         y,
-                        angle_to_center,
+                        angle_in_radians,
                         "thymio_small.png",
                         type=r_type,
                         id=robot_id,
@@ -151,6 +157,7 @@ class GameBoard:
                     robot = DifferentialDriveRobot(
                         x,
                         y,
+                        # -angle_to_center,
                         angle_in_radians,
                         "thymio_small.png",
                         type=r_type,
@@ -197,7 +204,7 @@ class GameBoard:
             current_time = pygame.time.get_ticks()
 
             # Increase training time as episode count increases, limit to maximum of 1 minute
-            self.trainingTime = min(EPISODE_TIME * 1000 + episode_count * 10, 60000)
+            self.trainingTime = min(EPISODE_TIME * 1000 + episode_count * 100, 60000)
             if (current_time - self.episode_start_time) >= self.trainingTime:
                 print(f"training time at {self.trainingTime / 1000} secs")
 

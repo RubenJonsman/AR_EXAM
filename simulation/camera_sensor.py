@@ -91,7 +91,29 @@ class CameraSensor:
         else:
             return None, None
             
+    def get_distance_to_robot_in_view(self, robot_pose: RobotPose, other_robots):
+        # Create a view frustum polygon that uses the robot's position and orientation
+        polygon, _ = self.create_view_frustum(robot_pose)
 
+        nearest_distance = float('inf')
+        nearest_robot = None
+
+        # Check for other robots in the view frustum
+        for other_robot in other_robots:
+            other_robot_pose = other_robot.get_robot_position()
+            if polygon.contains(Point(other_robot_pose.x, other_robot_pose.y)):
+                # Calculate the distance from the robot to the other robot
+                x1, y1 = robot_pose.x, robot_pose.y
+                x2, y2 = other_robot_pose.x, other_robot_pose.y
+                distance = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+                if distance < nearest_distance:
+                    nearest_distance = distance
+                    nearest_robot = other_robot
+
+        if nearest_robot is not None:
+            return nearest_distance, nearest_robot
+        else:
+            return None, None
             
 
     def detect(self, robot_pose, other_robots, object_color):
