@@ -14,6 +14,32 @@ onevent prox.comm
 
 """
 
+seeker_program_flip_flop = """
+# Variables must be at the start
+var send_interval = 200  # time in milliseconds
+var current_value = 2    # Start with 2
+var counter = 0         # To track iterations
+
+# Initialize timer and enable communication
+timer.period[0] = send_interval
+call prox.comm.enable(1)
+
+onevent timer0
+    # Cycle between 2, 3, and 4
+    if counter == 0 then
+        prox.comm.tx = 2
+        counter = 1
+    elseif counter == 1 then
+        prox.comm.tx = 3
+        counter = 2
+    else
+        prox.comm.tx = 4
+        counter = 0
+    end
+
+onevent prox.comm
+"""
+
 
 avoider_program = """
 var send_interval = 200  # time in milliseconds
@@ -26,19 +52,8 @@ onevent timer0
     prox.comm.tx = 2
     
 onevent prox.comm
-    if prox.comm.rx != 0 then
-        signal_detected = prox.comm.rx
-        time.period[1] = reset_delay
-
-onevent timer1
-    if signal_detected != 0 then
-        # force reset the received signal
-        prox.comm.rx = 0
-
-        # clear flag and stop timer
-        signal_detected = 0
-        time.period[1] = 0
-    end
+    # Only checking for received signal
+    # Removed LED changes
 """
 
 with ClientAsync() as client:
@@ -50,7 +65,7 @@ with ClientAsync() as client:
         # Lock the node representing the Thymio to ensure exclusive access.
         with await client.lock() as node:
             # Compile and send the program to the Thymio.
-            error = await node.compile(avoider_program)
+            error = await node.compile(seeker_program_flip_flop)
             if error is not None:
                 print(f"Compilation error: {error['error_msg']}")
             else:

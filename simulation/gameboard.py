@@ -8,13 +8,23 @@ import random, math
 from matplotlib import pyplot as plt
 from scipy.stats import linregress
 from shapely import LineString, Point
+
 # from lidar import LidarSensor
 from pygame.locals import QUIT, KEYDOWN
 from environment import Environment
 from robot import DifferentialDriveRobot
 from robot_pose import RobotPose
-from constants import AVOIDER, BLACK_WALL_ZONE, CAUGHT_STATE, CONCURRENT_GAMES, EPISODE_TIME, PADDING, SEEKER, WIDTH, \
-    HEIGHT
+from constants import (
+    AVOIDER,
+    WALL,
+    CAUGHT_STATE,
+    CONCURRENT_GAMES,
+    EPISODE_TIME,
+    PADDING,
+    SEEKER,
+    WIDTH,
+    HEIGHT,
+)
 
 from avoid_robot_model import AvoidModel
 # from avoid_robot_model import AvoidModelRNN as AvoidModel
@@ -38,7 +48,7 @@ class GameBoard:
         self.env = Environment(WIDTH, HEIGHT)
         self.games = CONCURRENT_GAMES
         self.population_size = 4 * self.games
-        self.TOP_N =  self.population_size // 3
+        self.TOP_N = self.population_size // 3
 
         self.trainingTime = EPISODE_TIME * 1000
 
@@ -48,16 +58,29 @@ class GameBoard:
         self.ax.set_title("Fitness Over Time")
         self.ax.set_xlabel("Episode")
         self.ax.set_ylabel("Fitness")
-        self.mean_line, = self.ax.plot([], [], 'b-', label="Mean Fitness")  # Mean fitness line
-        self.min_line, = self.ax.plot([], [], 'g-', label="Min Fitness")  # Min fitness line
-        self.max_line, = self.ax.plot([], [], 'r-', label="Max Fitness")  # Max fitness line
-        self.trend_line, = self.ax.plot([], [], 'k--', label="5-episode Trend")  # Trend line for the last 5 episodes
+        (self.mean_line,) = self.ax.plot(
+            [], [], "b-", label="Mean Fitness"
+        )  # Mean fitness line
+        (self.min_line,) = self.ax.plot(
+            [], [], "g-", label="Min Fitness"
+        )  # Min fitness line
+        (self.max_line,) = self.ax.plot(
+            [], [], "r-", label="Max Fitness"
+        )  # Max fitness line
+        (self.trend_line,) = self.ax.plot(
+            [], [], "k--", label="5-episode Trend"
+        )  # Trend line for the last 5 episodes
 
-        self.episodes, self.mean_fitness_values, self.min_fitness_values, self.max_fitness_values = [], [], [], []  # Lists to store data for plotting
+        (
+            self.episodes,
+            self.mean_fitness_values,
+            self.min_fitness_values,
+            self.max_fitness_values,
+        ) = [], [], [], []  # Lists to store data for plotting
         self.ax.legend()  # Show legend for lines
 
         offset = 20 + PADDING
-        
+
         self.starting_positions = [
             (SEEKER, WIDTH / 2, HEIGHT / 2),
             (AVOIDER, WIDTH - offset, HEIGHT - offset),
@@ -66,7 +89,7 @@ class GameBoard:
             # (AVOIDER, WIDTH - offset, HEIGHT - offset),
             (AVOIDER, 0 + offset, 0 + offset),
             (AVOIDER, WIDTH - offset, 0 + offset),
-            (AVOIDER, 0 + offset, HEIGHT - offset)
+            (AVOIDER, 0 + offset, HEIGHT - offset),
         ]
 
         # spawn robots in the corners
@@ -95,25 +118,51 @@ class GameBoard:
         """
         robot_id = 0
         self.gamesRobots: List[DifferentialDriveRobot] = []  # Initialize the main list
-        models = models or [None] * self.population_size  # Default to None if no models provided
+        models = (
+            models or [None] * self.population_size
+        )  # Default to None if no models provided
         model_index = 0  # Track the index in the models list
 
         for _ in range(self.games):  # Loop over the number of games
             game_robots = []  # List for robots in the current game
-            for r_type, x, y in self.starting_positions:  # Loop over the starting positions
+            for (
+                r_type,
+                x,
+                y,
+            ) in self.starting_positions:  # Loop over the starting positions
                 angle_to_center = math.atan2((HEIGHT / 2) - y, (WIDTH / 2) - x)
                 if r_type != SEEKER:
-                    robot_model = models[model_index] if model_index < len(models) else None
-                    robot = DifferentialDriveRobot(x, y, angle_to_center, 'thymio_small.png', type=r_type, id=robot_id, model_state=robot_model)
+                    robot_model = (
+                        models[model_index] if model_index < len(models) else None
+                    )
+                    robot = DifferentialDriveRobot(
+                        x,
+                        y,
+                        angle_to_center,
+                        "thymio_small.png",
+                        type=r_type,
+                        id=robot_id,
+                        model_state=robot_model,
+                    )
                     model_index += 1  # Increment the model index
                 else:
-                    angle_in_degrees= random.randint(0, 360)
+                    angle_in_degrees = random.randint(0, 360)
                     angle_in_radians = math.radians(angle_in_degrees)
-                    robot = DifferentialDriveRobot(x, y, angle_in_radians, 'thymio_small.png', type=r_type, id=robot_id, model_state=None)
-                
+                    robot = DifferentialDriveRobot(
+                        x,
+                        y,
+                        angle_in_radians,
+                        "thymio_small.png",
+                        type=r_type,
+                        id=robot_id,
+                        model_state=None,
+                    )
+
                 game_robots.append(robot)  # Add robot to the current game's list
                 robot_id += 1  # Increment the unique ID
-            self.gamesRobots.append(game_robots)  # Add the game's robots to the main list
+            self.gamesRobots.append(
+                game_robots
+            )  # Add the game's robots to the main list
 
     def update_trend_line(self):
         """
@@ -124,7 +173,9 @@ class GameBoard:
         if len(self.mean_fitness_values) >= 5:
             self.recent_episodes = self.episodes[-5:]
             self.recent_means = self.mean_fitness_values[-5:]
-            self.slope, intercept, _, _, _ = linregress(self.recent_episodes, self.recent_means)
+            self.slope, intercept, _, _, _ = linregress(
+                self.recent_episodes, self.recent_means
+            )
             self.trend_x = np.array([self.recent_episodes[0], self.recent_episodes[-1]])
             self.trend_y = intercept + self.slope * self.trend_x
             self.trend_line.set_xdata(self.trend_x)
@@ -132,12 +183,6 @@ class GameBoard:
         else:
             self.trend_line.set_xdata([])
             self.trend_line.set_ydata([])
-
-
-        
-
-        
-
 
     def visualize(self):
         # Game loop
@@ -150,7 +195,7 @@ class GameBoard:
                 if event.type == pygame.QUIT:
                     running = False
             current_time = pygame.time.get_ticks()
-            
+
             # Increase training time as episode count increases, limit to maximum of 1 minute
             self.trainingTime = min(EPISODE_TIME * 1000 + episode_count * 10, 60000)
             if (current_time - self.episode_start_time) >= self.trainingTime:
@@ -200,9 +245,14 @@ class GameBoard:
                     rank_weights[i] = 1 / rank
                     rank += 1
                 rank_weights /= np.sum(rank_weights)
-                top_n_indices = sorted_indices[-self.TOP_N:]
-                all_models = np.array([model.avoid_model for model in np.array(self.gamesRobots).flatten() if
-                                       model.avoid_model is not None])
+                top_n_indices = sorted_indices[-self.TOP_N :]
+                all_models = np.array(
+                    [
+                        model.avoid_model
+                        for model in np.array(self.gamesRobots).flatten()
+                        if model.avoid_model is not None
+                    ]
+                )
                 top_n_models = list(all_models[top_n_indices])
                 rest_models = self.population_size - self.TOP_N
                 new_models = top_n_models
@@ -238,22 +288,28 @@ class GameBoard:
                     if robot.avoid_model is not None:
                         robot.time_survived = 0
 
-
-
             # Calculate timestep
             time_step = (pygame.time.get_ticks() - self.last_time) / 1000
             self.last_time = pygame.time.get_ticks()
 
             for index in range(self.games):
-                self.gamesRobots[index][0].seek_robot(self.gamesRobots[index][1:], self.env)
+                self.gamesRobots[index][0].seek_robot(
+                    self.gamesRobots[index][1:], self.env
+                )
 
             for game in range(self.games):
                 for idx, r in enumerate(self.gamesRobots[game]):
                     if idx != 0:
                         if r.state != CAUGHT_STATE:
-                            other_robots = [robot for i, robot in enumerate(self.gamesRobots[game]) if i != idx]
+                            other_robots = [
+                                robot
+                                for i, robot in enumerate(self.gamesRobots[game])
+                                if i != idx
+                            ]
                             # r.avoid_robot(other_robots, self.env)
-                            reward = r.avoid_robot_model(other_robots, self.env, self.trainingTime)
+                            reward = r.avoid_robot_model(
+                                other_robots, self.env, self.trainingTime
+                            )
                             self.fitness_scores[r.id] += reward / r.fitness_counts
                             r.time_survived += time_step
 

@@ -28,8 +28,6 @@ class PhysicalRobot:
         self.capture = capture
         self.type = type  # 0 avoider or 1 seeker
         self.state = DEFAULT_STATE  # 0 default, 1 safe, 2 caught
-        self.left_motor_speed = 0
-        self.right_motor_speed = 0
 
         self.floor_sensor = FloorColorSensor(node=node)
         self.proximity_sensor = ProximitySensor(node=node)
@@ -39,9 +37,6 @@ class PhysicalRobot:
         self.back_up = 0  # counter for backing up
 
     def set_motor_speeds(self, left_motor_speed, right_motor_speed):  # MODIFY
-        print("Setting motor speeds: ", left_motor_speed, right_motor_speed)
-        self.left_motor_speed = left_motor_speed
-        self.right_motor_speed = right_motor_speed
         self.node.v.motor.left.target = left_motor_speed
         self.node.v.motor.right.target = right_motor_speed
 
@@ -124,8 +119,10 @@ class PhysicalRobot:
 
         direction = self.camera_sensor.detect()
 
+        print("Direction", direction)
+
         if direction is None:
-            self.set_motor_speeds(0, 0)
+            self.set_motor_speeds(30, -30)
         else:
             base_speed = MAX_WHEEL_SPEED / 2
             left_speed = base_speed + direction * (MAX_WHEEL_SPEED - base_speed)

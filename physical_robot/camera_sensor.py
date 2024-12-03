@@ -18,7 +18,7 @@ class CameraSensor:
             print("failed to grab frame")
             exit(1)
 
-        scale_factor = 0.125
+        scale_factor = 0.25
         # scale_factor = 1
 
         frame = cv2.resize(frame, (0, 0), fx=scale_factor, fy=scale_factor)
@@ -27,7 +27,7 @@ class CameraSensor:
         flipped_frame = cv2.flip(frame, 1)
         # flip y
         flipped_frame = cv2.flip(flipped_frame, 0)
-        # cv2.imwrite("./frame.jpg", flipped_frame)
+        cv2.imwrite("./frame.jpg", flipped_frame)
 
         frame_width = flipped_frame.shape[0]
 
@@ -42,7 +42,7 @@ class CameraSensor:
         upper_color = np.array([180, 255, 255])
 
         mask = cv2.inRange(hsv, lower_color, upper_color)
-        # cv2.imwrite("./imgs/mask.jpg", mask)
+        cv2.imwrite("./mask.jpg", mask)
         blurred_mask = cv2.GaussianBlur(mask, (3, 3), 0)
 
         contours, _ = cv2.findContours(
@@ -54,7 +54,7 @@ class CameraSensor:
         for contour in contours:
             M = cv2.moments(contour)
             area = cv2.contourArea(contour)
-            if area > 20:
+            if area > 30:
                 print("Area: " + str(area))
                 ball_count += 1
                 ball_detected = True
@@ -66,17 +66,13 @@ class CameraSensor:
 
             else:
                 print("Ignoring small area: " + str(area))
-        center_region_size = 150 * scale_factor
-        center_region_center = 320 * scale_factor
-        center_region_left_edge = center_region_center - center_region_size
-        center_region_right_edge = center_region_center + center_region_size
 
-        print("det", cx)
         print("i see " + str(ball_count) + " balls")
-        contour_image = cv2.drawContours(blurred_mask, contours, -1, (0, 255, 0), 3)
+        # contour_image = cv2.drawContours(blurred_mask, contours, -1, (0, 255, 0), 3)
         # cv2.imwrite("./contour_image.jpg", contour_image)
 
         if ball_count > 0:
+            # Calculate heading using the center of the ball
             return (cx / frame_width) * 2 - 1
         # if self.draw_contours:
 

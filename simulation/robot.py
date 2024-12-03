@@ -1,12 +1,29 @@
 import pygame
+
 # from sensors import CompassSensor  # Import the LidarSensor class
 import math
 import random
 import numpy as np
 from avoid_robot_model import AvoidModel
-from constants import AVOIDER, AVOIDER, AVOIDER_COLOR, BLACK_WALL_ZONE, CAMERA_RANGE, CAUGHT_STATE, MAX_BACKUP, \
-    MAX_WHEEL_SPEED, SEEKER_COLOR, STATE_COLOR_MAP, DEFAULT_STATE, GREY_DANGER_ZONE, SAFE_STATE, SILVER_SAFE_ZONE, \
-    INPUT_SIZE, HIDDEN_SIZE, DRAW_FRUSTRUM
+from constants import (
+    AVOIDER,
+    AVOIDER,
+    AVOIDER_COLOR,
+    WALL,
+    CAMERA_RANGE,
+    CAUGHT_STATE,
+    MAX_BACKUP,
+    MAX_WHEEL_SPEED,
+    SEEKER_COLOR,
+    STATE_COLOR_MAP,
+    DEFAULT_STATE,
+    DANGER,
+    SAFE_STATE,
+    SAFE,
+    INPUT_SIZE,
+    HIDDEN_SIZE,
+    DRAW_FRUSTRUM,
+)
 from shapely.geometry import Polygon
 from camera_sensor import CameraSensor
 from environment import Environment
@@ -15,7 +32,19 @@ from robot_pose import RobotPose
 
 
 class DifferentialDriveRobot:
-    def __init__(self, x, y, theta, image_path, type, id, model_state, axl_dist=5, wheel_radius=2.2, node=None):
+    def __init__(
+        self,
+        x,
+        y,
+        theta,
+        image_path,
+        type,
+        id,
+        model_state,
+        axl_dist=5,
+        wheel_radius=2.2,
+        node=None,
+    ):
         self.x = x
         self.y = y
         self.theta = theta  # Orientation in radians
@@ -54,20 +83,21 @@ class DifferentialDriveRobot:
 
     def fitness_function(self, training_time) -> float:
         self.fitness_counts += 1
-        
+
         # Base reward for survival
         scaling_factor = 0.01
 
         max_possible_reward = training_time * scaling_factor
-        reward = (self.time_survived / training_time) * max_possible_reward  # Normalize survival time by total possible time
-
+        reward = (
+            self.time_survived / training_time
+        ) * max_possible_reward  # Normalize survival time by total possible time
 
         # Penalty for being caught
         if self.state == CAUGHT_STATE:
             reward -= 5000  # Large penalty for being caught
 
         # Penalty for hitting a wall
-        if self.floor_sensor.get_color() == BLACK_WALL_ZONE:
+        if self.floor_sensor.get_color() == WALL:
             reward = -10000  # Smaller penalty for hitting a wall
 
         # if abs(self.left_motor_speed - self.right_motor_speed) > 0.5:# and (abs(left_motor_speed) + abs(right_motor_speed)) > 0.2:
@@ -90,13 +120,19 @@ class DifferentialDriveRobot:
         left_wheel_velocity = (self.left_motor_speed / 500) * v_max
         right_wheel_velocity = (self.right_motor_speed / 500) * v_max
 
-        v_x = math.cos(self.theta) * (self.wheel_radius * (left_wheel_velocity + right_wheel_velocity) / 2)
-        v_y = math.sin(self.theta) * (self.wheel_radius * (left_wheel_velocity + right_wheel_velocity) / 2)
-        omega = (self.wheel_radius * (left_wheel_velocity - right_wheel_velocity)) / (2 * self.axl_dist)
+        v_x = math.cos(self.theta) * (
+            self.wheel_radius * (left_wheel_velocity + right_wheel_velocity) / 2
+        )
+        v_y = math.sin(self.theta) * (
+            self.wheel_radius * (left_wheel_velocity + right_wheel_velocity) / 2
+        )
+        omega = (self.wheel_radius * (left_wheel_velocity - right_wheel_velocity)) / (
+            2 * self.axl_dist
+        )
 
-        self.x += (v_x * delta_time)
-        self.y += (v_y * delta_time)
-        self.theta += (omega * delta_time)
+        self.x += v_x * delta_time
+        self.y += v_y * delta_time
+        self.theta += omega * delta_time
 
     def set_motor_speeds(self, left_motor_speed, right_motor_speed):
         self.left_motor_speed = left_motor_speed
@@ -112,7 +148,9 @@ class DifferentialDriveRobot:
 
     def draw(self, surface):
         # Rotate and draw the robot image
-        rotated_image = pygame.transform.rotate(self.image, math.degrees(-1 * self.theta))
+        rotated_image = pygame.transform.rotate(
+            self.image, math.degrees(-1 * self.theta)
+        )
         self.rect.center = (int(self.x), int(self.y))
         new_rect = rotated_image.get_rect(center=self.rect.center)
         surface.blit(rotated_image, new_rect)
@@ -125,7 +163,13 @@ class DifferentialDriveRobot:
         right_wheel_y = self.y - half_axl * math.cos(self.theta)
 
         # Draw the axle line
-        pygame.draw.line(surface, (0, 255, 0), (left_wheel_x, left_wheel_y), (right_wheel_x, right_wheel_y), 3)
+        pygame.draw.line(
+            surface,
+            (0, 255, 0),
+            (left_wheel_x, left_wheel_y),
+            (right_wheel_x, right_wheel_y),
+            3,
+        )
 
         # Draw the heading line
         heading_length = 45
@@ -135,28 +179,32 @@ class DifferentialDriveRobot:
         pygame.draw.line(surface, color, (self.x, self.y), (heading_x, heading_y), 4)
 
         # Add trapezoid for the camera view
-        _, camera_point_list = self.camera_sensor.create_view_frustum(self.get_robot_position())
+        _, camera_point_list = self.camera_sensor.create_view_frustum(
+            self.get_robot_position()
+        )
 
         # Draw the trapezoid
         if DRAW_FRUSTRUM:
             pygame.draw.polygon(surface, (255, 0, 0, 100), camera_point_list, width=1)
 
-    def update_robot_state_based_on_floor_color(self, environment: Environment, robot_pose: RobotPose):
+    def update_robot_state_based_on_floor_color(
+        self, environment: Environment, robot_pose: RobotPose
+    ):
         self.floor_sensor.detect_color(environment=environment, robot_pose=robot_pose)
         color = self.floor_sensor.get_color()
 
-        if color == BLACK_WALL_ZONE and self.type == AVOIDER:
+        if color == WALL and self.type == AVOIDER:
             self.state = CAUGHT_STATE
             return
 
         if self.state == CAUGHT_STATE:
             return
-        
-        if color == SILVER_SAFE_ZONE:
+
+        if color == SAFE:
             self.state = SAFE_STATE
             return
 
-        if color == GREY_DANGER_ZONE:
+        if color == DANGER:
             self.state = DEFAULT_STATE
             return
 
@@ -165,8 +213,14 @@ class DifferentialDriveRobot:
 
     def avoid_robot_model(self, other_robots, environment, training_time):
         robot_pose = self.get_robot_position()
-        (robot_found, location) = self.camera_sensor.detect(robot_pose, other_robots, SEEKER_COLOR)
-        self.distance_to_wall, nearest_wall = self.camera_sensor.get_distance_and_angle_to_wall(robot_pose, environment.walls)
+        (robot_found, location) = self.camera_sensor.detect(
+            robot_pose, other_robots, SEEKER_COLOR
+        )
+        self.distance_to_wall, nearest_wall = (
+            self.camera_sensor.get_distance_and_angle_to_wall(
+                robot_pose, environment.walls
+            )
+        )
         if self.distance_to_wall is None:
             self.distance_to_wall = 1000
 
@@ -183,8 +237,13 @@ class DifferentialDriveRobot:
         robot_found_bool = 0
         if robot_found is not None:
             robot_found_bool = 1
-        output = self.avoid_model.forward(left, right, center, robot_found_bool, floor_color, self.distance_to_wall)
-        left_wheel, right_wheel = output[0].item() * MAX_WHEEL_SPEED, output[1].item() * MAX_WHEEL_SPEED
+        output = self.avoid_model.forward(
+            left, right, center, robot_found_bool, floor_color, self.distance_to_wall
+        )
+        left_wheel, right_wheel = (
+            output[0].item() * MAX_WHEEL_SPEED,
+            output[1].item() * MAX_WHEEL_SPEED,
+        )
         self.set_motor_speeds(left_wheel, right_wheel)
 
         reward = self.fitness_function(training_time)
@@ -194,7 +253,9 @@ class DifferentialDriveRobot:
         turn_speed = MAX_WHEEL_SPEED / 5
         # (robot_found, location) = self.is_there_a_robot(*self.get_robot_position())
         robot_pose = self.get_robot_position()
-        (robot_found, location) = self.camera_sensor.detect(robot_pose, other_robots, SEEKER_COLOR)
+        (robot_found, location) = self.camera_sensor.detect(
+            robot_pose, other_robots, SEEKER_COLOR
+        )
         # if robot_found:
         #     if location == "left":
         #         self.set_motor_speeds(-turn_speed, turn_speed)
@@ -206,7 +267,7 @@ class DifferentialDriveRobot:
         self.floor_sensor.detect_color(robot_pose, environment)
         floor_color = self.floor_sensor.get_color()
 
-        if floor_color == BLACK_WALL_ZONE:
+        if floor_color == WALL:
             if self.back_up == 0:
                 self.back_up = MAX_BACKUP
             else:
@@ -244,7 +305,9 @@ class DifferentialDriveRobot:
         turn_speed = MAX_WHEEL_SPEED / 5
         # (robot_found, location) = self.is_there_a_robot(*self.get_robot_position())
         robot_pose = self.get_robot_position()
-        (location, other_robot) = self.camera_sensor.detect(robot_pose, other_robots, AVOIDER_COLOR)
+        (location, other_robot) = self.camera_sensor.detect(
+            robot_pose, other_robots, AVOIDER_COLOR
+        )
 
         # check if all robots are in the caught state
         all_caught = True
@@ -267,7 +330,7 @@ class DifferentialDriveRobot:
         else:
             self.floor_sensor.detect_color(robot_pose, environment)
             floor_color = self.floor_sensor.get_color()
-            if floor_color == BLACK_WALL_ZONE:
+            if floor_color == WALL:
                 if self.back_up == 0:
                     self.back_up = MAX_BACKUP
                 else:
