@@ -16,9 +16,9 @@ from robot_pose import RobotPose
 from constants import AVOIDER, BLACK_WALL_ZONE, CAUGHT_STATE, CONCURRENT_GAMES, EPISODE_TIME, PADDING, SEEKER, WIDTH, \
     HEIGHT
 
-# from avoid_robot_model import AvoidModel
-from avoid_robot_model import AvoidModelRNN as AvoidModel
-import pygad
+from avoid_robot_model import AvoidModel
+# from avoid_robot_model import AvoidModelRNN as AvoidModel
+# import pygad
 
 
 class GameBoard:
@@ -57,7 +57,7 @@ class GameBoard:
         self.ax.legend()  # Show legend for lines
 
         offset = 20 + PADDING
-
+        
         self.starting_positions = [
             (SEEKER, WIDTH / 2, HEIGHT / 2),
             (AVOIDER, WIDTH - offset, HEIGHT - offset),

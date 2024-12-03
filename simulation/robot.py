@@ -15,7 +15,7 @@ from robot_pose import RobotPose
 
 
 class DifferentialDriveRobot:
-    def __init__(self, x, y, theta, image_path, type, id, model_state, axl_dist=5, wheel_radius=2.2):
+    def __init__(self, x, y, theta, image_path, type, id, model_state, axl_dist=5, wheel_radius=2.2, node=None):
         self.x = x
         self.y = y
         self.theta = theta  # Orientation in radians
@@ -31,6 +31,7 @@ class DifferentialDriveRobot:
         self.type = type  # 0 avoider or 1 seeker
         self.state = DEFAULT_STATE  # 0 default, 1 safe, 2 caught
         self.avoid_model = None
+        self.node = node
 
         if self.type == AVOIDER:
             self.avoid_model = AvoidModel(INPUT_SIZE, HIDDEN_SIZE)
@@ -46,7 +47,7 @@ class DifferentialDriveRobot:
         self.odometry_noise_level = 0.01
         self.camera_sensor = CameraSensor(camera_range=CAMERA_RANGE)
 
-        self.floor_sensor = FloorColorSensor()
+        self.floor_sensor = FloorColorSensor(self.node)
         self.back_up = 0  # counter for backing up
         self.time_survived = 0  # Track survival time
         self.penalty = 0  # Accumulate penalties
@@ -69,8 +70,8 @@ class DifferentialDriveRobot:
         if self.floor_sensor.get_color() == BLACK_WALL_ZONE:
             reward = -10000  # Smaller penalty for hitting a wall
 
-        if abs(self.left_motor_speed - self.right_motor_speed) > 0.5:# and (abs(left_motor_speed) + abs(right_motor_speed)) > 0.2:
-            reward -= 100  # Penalize spinning
+        # if abs(self.left_motor_speed - self.right_motor_speed) > 0.5:# and (abs(left_motor_speed) + abs(right_motor_speed)) > 0.2:
+        #     reward -= 100  # Penalize spinning
 
         return reward
 
