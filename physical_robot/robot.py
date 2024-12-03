@@ -35,6 +35,9 @@ class PhysicalRobot:
         self.LED = LEDHandler(node=node)
 
         self.back_up = 0  # counter for backing up
+        self.set_motor_speeds(-30, 30)
+
+        self.iters_since_last_detection = 0
 
     def set_motor_speeds(self, left_motor_speed, right_motor_speed):  # MODIFY
         self.node.v.motor.left.target = left_motor_speed
@@ -64,54 +67,10 @@ class PhysicalRobot:
             self.LED.change_led_color("RED")
             return
 
-    # def get_distance_to_robot(self, other_robot): # MODIFY
-    #     """ Returns a distance metric between this robot and another robot """
-    #     return 0
-
-    # if the distance to the other robot is less than threshold change the robots state to caught
-    # def tag_robot(self, other_robot): # MODIFY
-    #     distance = self.get_distance_to_robot(other_robot)
-    #     if distance < 30:
-    #         # print("Caught", other_robot)
-    #         other_robot.state = CAUGHT_STATE
-
     def seek_robot(self):
-        turn_speed = MAX_WHEEL_SPEED / 5
-        (robot_found, location) = self.is_there_a_robot()  # MODIFY
-        (location, other_robot) = self.camera_sensor.detect(AVOIDER_COLOR)  # MODIFY
+        # self.set_motor_speeds(150, 300)
+        # return
 
-        if other_robot is not None:
-            if location == "left":
-                self.set_motor_speeds(-turn_speed, turn_speed)
-            elif location == "right":
-                self.set_motor_speeds(turn_speed, -turn_speed)
-            else:
-                self.set_motor_speeds(MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
-            self.tag_robot(other_robot)
-        else:
-            self.floor_sensor.detect_color()
-            floor_color = self.floor_sensor.get_color()
-            if floor_color == WALL:
-                if self.back_up == 0:
-                    self.back_up = MAX_BACKUP
-                else:
-                    self.set_motor_speeds(MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
-                    self.back_up = 0
-
-            if self.back_up > MAX_BACKUP // 2:
-                self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
-                self.back_up -= 1
-                return
-            if self.back_up > 0:
-                self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
-                self.back_up -= 1
-                return
-
-            left_wheel = random.randint(0, MAX_WHEEL_SPEED)
-            right_wheel = random.randint(0, MAX_WHEEL_SPEED)
-            self.set_motor_speeds(left_wheel, right_wheel)
-
-    def avoid_robot(self):
         if self.state == CAUGHT_STATE:
             self.set_motor_speeds(0, 0)
             return
@@ -121,9 +80,7 @@ class PhysicalRobot:
 
         print("Direction", direction)
 
-        if direction is None:
-            self.set_motor_speeds(30, -30)
-        else:
+        if direction is not None:
             base_speed = MAX_WHEEL_SPEED / 2
             left_speed = base_speed + direction * (MAX_WHEEL_SPEED - base_speed)
             right_speed = base_speed - direction * (MAX_WHEEL_SPEED - base_speed)
@@ -131,3 +88,13 @@ class PhysicalRobot:
             sf = 1
 
             self.set_motor_speeds(int(left_speed * sf), int(right_speed * sf))
+
+        elif self.iters_since_last_detection > 25:
+            self.set_motor_speeds(30, -30)
+            self.iters_since_last_detection = 0
+
+        else:
+            self.iters_since_last_detection += 1
+
+    def avoid_robot(self):
+        pass

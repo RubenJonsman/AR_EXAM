@@ -54,20 +54,20 @@ class CameraSensor:
         for contour in contours:
             M = cv2.moments(contour)
             area = cv2.contourArea(contour)
-            if area > 30:
-                print("Area: " + str(area))
-                ball_count += 1
-                ball_detected = True
+            # if area > 30:
+            print("Area: " + str(area))
+            ball_count += 1
+            ball_detected = True
 
-                if M["m00"] != 0:
-                    cx = int(M["m10"] / M["m00"])
-                    cy = int(M["m01"] / M["m00"])
-                    # self.positions.append([cx, cy])
+            if M["m00"] != 0:
+                cx = int(M["m10"] / M["m00"])
+                cy = int(M["m01"] / M["m00"])
+                # self.positions.append([cx, cy])
 
             else:
                 print("Ignoring small area: " + str(area))
 
-        print("i see " + str(ball_count) + " balls")
+        print("i see " + str(ball_count) + " contours")
         # contour_image = cv2.drawContours(blurred_mask, contours, -1, (0, 255, 0), 3)
         # cv2.imwrite("./contour_image.jpg", contour_image)
 
@@ -75,9 +75,6 @@ class CameraSensor:
             # Calculate heading using the center of the ball
             return (cx / frame_width) * 2 - 1
         # if self.draw_contours:
-
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            exit(0)
 
         if self.type == AVOIDER:
             # TODO: Detect red

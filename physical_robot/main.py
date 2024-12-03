@@ -13,7 +13,7 @@ with ClientAsync() as client:
             try:
                 while True:
                     # Pseudo code
-                    robot.avoid_robot()
+                    robot.seek_robot()
                     await client.sleep(0.025)
                     # time.sleep(0.5)
             except KeyboardInterrupt:
