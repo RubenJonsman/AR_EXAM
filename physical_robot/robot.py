@@ -1,15 +1,28 @@
 import random
+
 # from avoid_robot_model import AvoidModel
-from constants import AVOIDER_COLOR, CAUGHT_STATE, DANGER, MAX_BACKUP, \
-    MAX_WHEEL_SPEED, DEFAULT_STATE, SAFE, SAFE_STATE, AVOIDER, SAFE, DANGER, WALL
+from constants import (
+    AVOIDER_COLOR,
+    CAUGHT_STATE,
+    DANGER,
+    MAX_BACKUP,
+    MAX_WHEEL_SPEED,
+    DEFAULT_STATE,
+    SAFE,
+    SAFE_STATE,
+    AVOIDER,
+    SAFE,
+    DANGER,
+    WALL,
+)
 from camera_sensor import CameraSensor
 
-from physical_robot.floor_color_sensor import FloorColorSensor
-from physical_robot.proximity_sensor import ProximitySensor
-from physical_robot.led import LEDHandler
+from floor_color_sensor import FloorColorSensor
+from proximity_sensor import ProximitySensor
+from led import LEDHandler
 
 
-class PhysicialRobot:
+class PhysicalRobot:
     def __init__(self, node, capture):
         self.node = node
         self.capture = capture
@@ -17,36 +30,38 @@ class PhysicialRobot:
         self.state = DEFAULT_STATE  # 0 default, 1 safe, 2 caught
         self.left_motor_speed = 0
         self.right_motor_speed = 0
-        
+
         self.floor_sensor = FloorColorSensor(node=node)
-        # self.proximity_sensor = ProximitySensor(node=node)
-        # self.camera_sensor = CameraSensor(capture=capture)
-        # self.LED = LEDHandler(node=node)
-        
+        self.proximity_sensor = ProximitySensor(node=node)
+        self.camera_sensor = CameraSensor(capture=capture, type=self.type)
+        self.LED = LEDHandler(node=node)
+
         self.back_up = 0  # counter for backing up
 
-
-    def set_motor_speeds(self, left_motor_speed, right_motor_speed): # MODIFY
+    def set_motor_speeds(self, left_motor_speed, right_motor_speed):  # MODIFY
+        print("Setting motor speeds: ", left_motor_speed, right_motor_speed)
         self.left_motor_speed = left_motor_speed
         self.right_motor_speed = right_motor_speed
+        self.node.v.motor.left.target = left_motor_speed
+        self.node.v.motor.right.target = right_motor_speed
 
+        self.node.flush()
 
     def update_robot_state_based_on_floor_color(self):
-        
         # Stop updating the color if the avoider is caught
         if self.type == AVOIDER and self.state == CAUGHT_STATE:
             return
-        
-        self.floor_sensor.detect_color() 
+
+        self.floor_sensor.detect_color()
         color = self.floor_sensor.get_color()
 
         if self.state == CAUGHT_STATE:
             self.LED.change_led_color("PURPLE")
             return
-        
+
         if color == SAFE:
             self.state = SAFE_STATE
-            self.LED.change_led_color("ORANGE") 
+            self.LED.change_led_color("ORANGE")
             return
 
         if color == DANGER:
@@ -58,7 +73,6 @@ class PhysicialRobot:
     #     """ Returns a distance metric between this robot and another robot """
     #     return 0
 
-
     # if the distance to the other robot is less than threshold change the robots state to caught
     # def tag_robot(self, other_robot): # MODIFY
     #     distance = self.get_distance_to_robot(other_robot)
@@ -68,8 +82,8 @@ class PhysicialRobot:
 
     def seek_robot(self):
         turn_speed = MAX_WHEEL_SPEED / 5
-        (robot_found, location) = self.is_there_a_robot() # MODIFY
-        (location, other_robot) = self.camera_sensor.detect(AVOIDER_COLOR) # MODIFY
+        (robot_found, location) = self.is_there_a_robot()  # MODIFY
+        (location, other_robot) = self.camera_sensor.detect(AVOIDER_COLOR)  # MODIFY
 
         if other_robot is not None:
             if location == "left":
@@ -105,8 +119,18 @@ class PhysicialRobot:
     def avoid_robot(self):
         if self.state == CAUGHT_STATE:
             self.set_motor_speeds(0, 0)
-            return 
+            return
         # TODO: Avoid other robots
 
-        self.floor_sensor.detect_color()
-        print(self.floor_sensor.get_color())
+        direction = self.camera_sensor.detect()
+
+        if direction is None:
+            self.set_motor_speeds(0, 0)
+        else:
+            base_speed = MAX_WHEEL_SPEED / 2
+            left_speed = base_speed + direction * (MAX_WHEEL_SPEED - base_speed)
+            right_speed = base_speed - direction * (MAX_WHEEL_SPEED - base_speed)
+
+            sf = 1
+
+            self.set_motor_speeds(int(left_speed * sf), int(right_speed * sf))
