@@ -14,8 +14,8 @@ class AvoidModel(nn.Module):
     self.output_layer = nn.Linear(hidden_size, 2) # two motors
 
   # def forward(self, left, right, center, robot_found, floor_color):
-  def forward(self, left, right, center, robot_found, floor_color, distance_to_wall):
-      inp = self.input_layer(torch.Tensor([left, right, center, robot_found, floor_color, distance_to_wall]).float())
+  def forward(self, left, right, center, robot_found, floor_color, distance_to_wall, distance_to_robot):
+      inp = self.input_layer(torch.Tensor([left, right, center, robot_found, floor_color, distance_to_wall, distance_to_robot]).float())
     #   act = torch.nn.functional.tanh(inp)
 
     #   hid = self.hidden_layer(act)
@@ -25,26 +25,7 @@ class AvoidModel(nn.Module):
       norm = torch.nn.functional.tanh(out)
       return norm
 
-  def get_parameters(self):
-          return list(self.parameters())
 
-  def mutate(self):
-      """
-      Mutates a random param
-      """
-      random_weight_index = np.random.randint(0, len(list(self.get_parameters())))
-
-      should_mutate = np.random.random() < 0.2
-
-      if should_mutate:
-          param = self.get_parameters()[random_weight_index]
-          param.data += torch.randn(param.size()) * self.noise_amount
-
-  def crossover(self, other):
-      for i, param in enumerate(self.get_parameters()):
-          if i % 2 == 0:
-              param.data = other.get_parameters()[i].data
-      return self
   
 
 class AvoidModelRNN(nn.Module):
@@ -84,23 +65,5 @@ class AvoidModelRNN(nn.Module):
 
         return norm
 
-    def get_parameters(self):
-            return list(self.parameters())
 
-    def mutate(self):
-        """
-        Mutates a random param
-        """
-        random_weight_index = np.random.randint(0, len(list(self.get_parameters())))
-
-        should_mutate = np.random.random() < 0.5
-
-        if should_mutate:
-            param = self.get_parameters()[random_weight_index]
-            param.data += torch.randn(param.size()) * self.noise_amount
-
-    def crossover(self, other):
-        for i, param in enumerate(self.get_parameters()):
-            if i % 2 == 0:
-                param.data = other.get_parameters()[i].data
-        return self
+    
