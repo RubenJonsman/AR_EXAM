@@ -68,3 +68,9 @@ Todo:
   - [ ] Simulate camera sensor
   - [ ] Implement tag-and-avoid behavior
   - [ ] Make simulation as close to reality as possible, i.e how long the camera can see, how far the infrared can be detected
+
+# Update date on raspberry pi
+
+```bash
+sudo date -s "2024-12-03 12:00:00"
+```
