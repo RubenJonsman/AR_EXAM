@@ -101,12 +101,12 @@ class DifferentialDriveRobot:
             reward -= 100  # Large penalty for being caught
 
         # Penalty for having differences in motor speeds 
-        reward -= abs(self.left_motor_speed - self.right_motor_speed) * 0.001
+        reward -= abs(self.left_motor_speed - self.right_motor_speed) * 0.005 # 0.001
 
         # Reward for distance moved
         if hasattr(self, 'last_position'):
             distance_moved = math.sqrt((self.x - self.last_position[0]) ** 2 + (self.y - self.last_position[1]) ** 2)
-            reward += distance_moved * 1  # Reward for distance moved
+            reward += distance_moved * 1 # Reward for distance moved
         self.last_position = (self.x, self.y)
 
         return reward
