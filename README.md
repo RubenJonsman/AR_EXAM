@@ -2,6 +2,10 @@ Exam Project Advanced Robotics ITU 2024
 
 https://learnit.itu.dk/pluginfile.php/400034/mod_resource/content/1/tag-project.pdf
 
+### Project Report
+
+https://www.overleaf.com/project/673c4f7d278835d18eba072d
+
 ---
 
 ### Set the hostName - Main robot
