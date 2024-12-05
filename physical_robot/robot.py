@@ -42,7 +42,6 @@ class PhysicalRobot:
         self.camera_sensor = CameraSensor(capture=capture, type=self.type)
         self.LED = LEDHandler(node=node)
         self.ir_signal = IRsignal(node=node, robot_type=self.type)
-        # self.ir_signal.initialize_signal() # init tx and rx signals
 
         self.back_up = 0  # counter for backing up
         self.set_motor_speeds(-30, 30)
@@ -55,8 +54,8 @@ class PhysicalRobot:
             self.robot_model.load_state_dict(torch.load(model_path, weights_only=True))
             self.robot_model.eval()
 
-    async def init_robot(self):
-        await self.ir_signal.initialize_signal()
+    # async def init_robot(self):
+    #     await self.ir_signal.initialize_thymio((0, 32, 0))
 
     async def update_color(self):
         color = LED_STATE_COLOR_MAP[self.type, self.state]
@@ -66,6 +65,7 @@ class PhysicalRobot:
         self.rx_signal = self.proximity_sensor.get_proximity_signal()
 
     def set_motor_speeds(self, left_motor_speed, right_motor_speed):  # MODIFY
+        return
         self.node.v.motor.left.target = left_motor_speed
         self.node.v.motor.right.target = right_motor_speed
 
@@ -111,23 +111,29 @@ class PhysicalRobot:
     async def run(self):
         if self.type == AVOIDER and self.state == CAUGHT_STATE:
             self.set_motor_speeds(0, 0)
+            print("Caught! :(((")
             exit(0)
             return
 
-        floor = self.floor_sensor.detect_color()
-        print(floor)
-        if floor == SAFE:
-            self.state = SAFE_STATE
-        else:
-            self.state = DEFAULT_STATE
-
-        if self.type == SEEKER:
-            self.seek_robot()
-        else:
-            self.avoid_robot()
-
         if self.prev_state != self.state:
-            await self.update_color()
+            await self.ir_signal.initialize_thymio(
+                LED_STATE_COLOR_MAP[self.type, self.state]
+            )
+
+        # value = await self.ir_signal.get_ir_signal()
+        # if self.type == AVOIDER and value == CAUGHT_STATE:
+        #     self.state = CAUGHT_STATE
+        # floor = self.floor_sensor.detect_color()
+
+        # if floor == SAFE:
+        #     self.state = SAFE_STATE
+        # else:
+        #     self.state = DEFAULT_STATE
+
+        # if self.type == SEEKER:
+        #     self.seek_robot()
+        # else:
+        #     self.avoid_robot()
 
         self.prev_state = self.state
 

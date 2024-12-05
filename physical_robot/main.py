@@ -1,5 +1,6 @@
 from utils.led_change import change_color
 from robot import PhysicalRobot
+from ir_signal import IRsignal
 from tdmclient import ClientAsync
 import time
 import cv2
@@ -19,17 +20,24 @@ if __name__ == "__main__":
 
         async def prog():
             with await client.lock() as node:
+                print("Waiting for variables")
                 await node.wait_for_variables({"prox.horizontal"})
-                while True:
-                    cap = cv2.VideoCapture(0)
-                    robot = PhysicalRobot(node=node, capture=cap, robot_type=robot_type)
-                    await robot.init_robot()
-                    try:
-                        while True:
-                            await robot.run()
-                            await client.sleep(0.025)
-                    except KeyboardInterrupt as e:
-                        print(f"Error in main loop: {e}")
-                        robot.set_motor_speeds(0, 0)
+                print("Variables ready")
+
+                print("Initializing robot")
+
+                cap = cv2.VideoCapture(0)
+                robot = PhysicalRobot(node=node, capture=cap, robot_type=robot_type)
+
+                print("Robot initialized")
+                try:
+                    while True:
+                        print("Robot loop")
+                        await robot.run()
+                        time.sleep(1)
+                        # await client.sleep(0.025)
+                except KeyboardInterrupt as e:
+                    print(f"Error in main loop: {e}")
+                    robot.set_motor_speeds(0, 0)
 
         client.run_async_program(prog)

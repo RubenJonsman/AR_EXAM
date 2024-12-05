@@ -49,18 +49,22 @@ STATE_COLOR_MAP = {
     (SEEKER, SAFE_STATE): SAFE_SEEKER_COLOR,
 }
 
-LED_STATE_COLOR_MAP = {
-    (AVOIDER, DEFAULT_STATE): "BLUE",
-    (AVOIDER, SAFE_STATE): "GREEN",
-    (AVOIDER, CAUGHT_STATE): "PURPLE",
-    (SEEKER, DEFAULT_STATE): "RED",
-    (SEEKER, SAFE_STATE): "ORANGE",
+color_dict = {
+    "BLUE": (0, 0, 32),
+    "GREEN": (0, 32, 0),
+    "RED": (32, 0, 0),
+    "ORANGE": (32, 16, 0),
+    "PURPLE": (32, 0, 32),
 }
 
-# DANGER=0
-# SAFE=1
-# WALL=2
-# REFLECTIVE_SILVER=3
+LED_STATE_COLOR_MAP = {
+    (AVOIDER, DEFAULT_STATE): color_dict["BLUE"],
+    (AVOIDER, SAFE_STATE): color_dict["GREEN"],
+    (AVOIDER, CAUGHT_STATE): color_dict["PURPLE"],
+    (SEEKER, DEFAULT_STATE): color_dict["RED"],
+    (SEEKER, SAFE_STATE): color_dict["ORANGE"],
+}
+
 WALL = 2
 DANGER = 0
 SAFE = 1
