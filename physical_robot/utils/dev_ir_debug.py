@@ -1,72 +1,70 @@
 from tdmclient import ClientAsync
 
-seeker_program = """
-var send_interval = 200  # time in milliseconds
-timer.period[0] = send_interval
-
-call prox.comm.enable(1)
-onevent timer0
-    prox.comm.tx = 1
-
-onevent prox.comm
-    # Only checking for received signal
-    # Removed LED changes
-
-"""
-
-seeker_program_flip_flop = """
-# Variables must be at the start
-var send_interval = 200  # time in milliseconds
-var current_value = 2    # Start with 2
-var counter = 0         # To track iterations
-
-# Initialize timer and enable communication
-timer.period[0] = send_interval
-call prox.comm.enable(1)
-
-onevent timer0
-    # Cycle between 2, 3, and 4
-    if counter == 0 then
-        prox.comm.tx = 2
-        counter = 1
-    elseif counter == 1 then
-        prox.comm.tx = 3
-        counter = 2
-    else
-        prox.comm.tx = 4
-        counter = 0
-    end
-
-onevent prox.comm
-"""
-
-
-avoider_program_good = """
+avoider_program = """
 # Variables must be at start
 var send_interval = 200  # time in milliseconds
 var signal_detected = 0  # For storing received signal
 var reset_delay = 500   # Reset after 500ms
 
+# Enable communication first
+call prox.comm.enable(1)
+
+# Initialize timer
+timer.period[0] = send_interval
+
 # Set constant transmission
-prox.comm.tx = 2
+onevent timer0
+    prox.comm.tx = 2  # Continuously send 2
     
+# Force update rx value in every timer tick
+    if prox.comm.rx == 0 then
+        signal_detected = 0
+    end
+
 onevent prox.comm
-    if prox.comm.rx != 0 then
-        signal_detected = prox.comm.rx
+    signal_detected = prox.comm.rx
+    if signal_detected != 0 then
         timer.period[1] = reset_delay
     end
 
 onevent timer1
-    if signal_detected != 0 then
-        # force reset the received signal
-        prox.comm.rx = 0
-
-        # clear flag and stop timer
-        signal_detected = 0
-        timer.period[1] = 0
-    end
+    prox.comm.rx = 0  # Force reset rx
+    signal_detected = 0
+    timer.period[1] = 0
 """
 
+seeker_program = """
+# Variables must be at start
+var send_interval = 200  # time in milliseconds
+var signal_detected = 0  # For storing received signal
+var reset_delay = 500   # Reset after 500ms
+
+# Enable communication first
+call prox.comm.enable(1)
+
+# Initialize timer
+timer.period[0] = send_interval
+
+# Set constant transmission
+onevent timer0
+    prox.comm.tx = 1 # Continuously send 1
+    
+# Force update rx value in every timer tick
+    if prox.comm.rx == 0 then
+        signal_detected = 0
+    end
+
+onevent prox.comm
+    signal_detected = prox.comm.rx
+    if signal_detected != 0 then
+        timer.period[1] = reset_delay
+    end
+
+onevent timer1
+    prox.comm.rx = 0  # Force reset rx
+    signal_detected = 0
+    timer.period[1] = 0
+"""
 
 with ClientAsync() as client:
     async def prog():
@@ -77,7 +75,7 @@ with ClientAsync() as client:
         # Lock the node representing the Thymio to ensure exclusive access.
         with await client.lock() as node:
             # Compile and send the program to the Thymio.
-            error = await node.compile(avoider_program_good)
+            error = await node.compile(avoider_program)
             if error is not None:
                 print(f"Compilation error: {error['error_msg']}")
             else:
