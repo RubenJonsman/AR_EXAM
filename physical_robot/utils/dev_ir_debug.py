@@ -14,7 +14,7 @@ timer.period[0] = send_interval
 
 # Set constant transmission
 onevent timer0
-    prox.comm.tx = 2  # Continuously send 2
+    prox.comm.tx = 5  # Continuously send 2
     
 # Force update rx value in every timer tick
     if prox.comm.rx == 0 then
@@ -75,7 +75,7 @@ with ClientAsync() as client:
         # Lock the node representing the Thymio to ensure exclusive access.
         with await client.lock() as node:
             # Compile and send the program to the Thymio.
-            error = await node.compile(seeker_program)
+            error = await node.compile(avoider_program)
             if error is not None:
                 print(f"Compilation error: {error['error_msg']}")
             else:

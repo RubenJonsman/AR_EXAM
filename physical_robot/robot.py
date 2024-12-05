@@ -30,7 +30,7 @@ from ir_signal import IRsignal
 
 
 class PhysicalRobot:
-    def __init__(self, node, capture, robot_type):
+    async def __init__(self, node, capture, robot_type):
         self.node = node
         self.capture = capture
         self.type = robot_type  # 0 avoider or 1 seeker
@@ -41,6 +41,8 @@ class PhysicalRobot:
         self.proximity_sensor = ProximitySensor(node=node)
         self.camera_sensor = CameraSensor(capture=capture, type=self.type)
         self.LED = LEDHandler(node=node)
+        self.ir_signal = IRsignal(node=node, robot_type=self.type)
+        await self.ir_signal.initialize_signal() # init tx and rx signals
 
         self.back_up = 0  # counter for backing up
         self.set_motor_speeds(-30, 30)
@@ -49,14 +51,13 @@ class PhysicalRobot:
 
 
         if self.type == AVOIDER:
-            self.tx_signal = 2
             model_path = "Store/model_111.pth"
             self.robot_model = AvoidModel(INPUT_SIZE, HIDDEN_SIZE)
             self.robot_model.load_state_dict(torch.load(model_path, weights_only=True))
             self.robot_model.eval()
 
         elif self.type == SEEKER:
-            self.tx_signal = 1
+            pass
 
     def receive_signal(self):
         self.rx_signal = self.proximity_sensor.get_proximity_signal()

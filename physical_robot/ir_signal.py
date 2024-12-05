@@ -1,15 +1,3 @@
-class IRsignal:
-    def __init__(self, node):
-        self.role = "Seeker"
-        self.node = node
-        self.tx_signal = 0
-        self.rx_signal = 0
-
-    def set_ir_signal(self, signal):
-        self.tx_signal = signal
-
-
-
 avoider_program = """
 # Variables must be at start
 var send_interval = 200  # time in milliseconds
@@ -75,3 +63,22 @@ onevent timer1
     signal_detected = 0
     timer.period[1] = 0
 """
+
+class IRsignal:
+    def __init__(self, node, robot_type):
+        self.robot_type = robot_type
+        self.node = node
+        self.initialize_signal()  # Initialize on creation
+    
+    async def initialize_signal(self):
+        try:
+            if self.robot_type == "seeker":
+                await self.node.compile(seeker_program)
+            elif self.robot_type == "avoider":
+                await self.node.compile(avoider_program)
+            await self.node.run()
+        except Exception as e:
+            print(f"Error initializing IR signal: {e}")
+
+    def get_ir_signal(self):
+        return self.node.v.prox.comm.rx
