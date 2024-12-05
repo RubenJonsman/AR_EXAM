@@ -43,7 +43,7 @@ class PhysicalRobot:
         self.LED = LEDHandler(node=node)
         self.ir_signal = IRsignal(node=node, robot_type=self.type)
         # self.ir_signal.initialize_signal() # init tx and rx signals
-        
+
 
         self.back_up = 0  # counter for backing up
         self.set_motor_speeds(-30, 30)
@@ -135,7 +135,7 @@ class PhysicalRobot:
         if self.state == CAUGHT_STATE:
             self.set_motor_speeds(0, 0)
             return
-        
+
 
         (_, robot_found, location, self.distance_to_robot, self.distance_to_wall) = self.camera_sensor.detect()
         # self.distance_to_wall, nearest_wall = (self.camera_sensor.get_distance_and_angle_to_wall())
@@ -159,7 +159,7 @@ class PhysicalRobot:
         if robot_found:
             robot_found_bool = 1
 
-        # self.distance_to_wall = 1000
+        self.distance_to_wall = 0 if floor_color == WALL else 1000
 
         floor_color = DANGER
         print(f"Left: {left} Right: {right} Center: {center} Robot Found: {robot_found_bool} Floor Color: {floor_color} Distance to Wall: {self.distance_to_wall} Distance to Robot: {self.distance_to_robot}")
@@ -169,4 +169,4 @@ class PhysicalRobot:
         self.set_motor_speeds(round(left_wheel), round(right_wheel))
         # self.set_motor_speeds(0,0)
 
-        
+
