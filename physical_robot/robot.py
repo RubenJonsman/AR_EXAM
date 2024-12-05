@@ -25,6 +25,7 @@ from camera_sensor import CameraSensor
 from floor_color_sensor import FloorColorSensor
 from proximity_sensor import ProximitySensor
 from led import LEDHandler
+from ir_signal import IRsignal
 
 
 class PhysicalRobot:
@@ -56,6 +57,8 @@ class PhysicalRobot:
         elif self.type == SEEKER:
             self.tx_signal = 1
 
+    def receive_signal(self):
+        self.rx_signal = self.proximity_sensor.get_proximity_signal()
 
     def set_motor_speeds(self, left_motor_speed, right_motor_speed):  # MODIFY
         self.node.v.motor.left.target = left_motor_speed
