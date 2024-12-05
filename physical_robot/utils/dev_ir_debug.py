@@ -41,20 +41,32 @@ onevent prox.comm
 """
 
 
-avoider_program = """
+avoider_program_good = """
+# Variables must be at start
 var send_interval = 200  # time in milliseconds
-timer.period[0] = send_interval
-call prox.comm.enable(1)
+var signal_detected = 0  # For storing received signal
+var reset_delay = 500   # Reset after 500ms
 
-timer.period[0] = send_interval
-
-onevent timer0
-    prox.comm.tx = 2
+# Set constant transmission
+prox.comm.tx = 2
     
 onevent prox.comm
-    # Only checking for received signal
-    # Removed LED changes
+    if prox.comm.rx != 0 then
+        signal_detected = prox.comm.rx
+        timer.period[1] = reset_delay
+    end
+
+onevent timer1
+    if signal_detected != 0 then
+        # force reset the received signal
+        prox.comm.rx = 0
+
+        # clear flag and stop timer
+        signal_detected = 0
+        timer.period[1] = 0
+    end
 """
+
 
 with ClientAsync() as client:
     async def prog():
@@ -65,7 +77,7 @@ with ClientAsync() as client:
         # Lock the node representing the Thymio to ensure exclusive access.
         with await client.lock() as node:
             # Compile and send the program to the Thymio.
-            error = await node.compile(seeker_program_flip_flop)
+            error = await node.compile(avoider_program_good)
             if error is not None:
                 print(f"Compilation error: {error['error_msg']}")
             else:
@@ -89,15 +101,6 @@ with ClientAsync() as client:
 
                 message = node.v.prox.comm.rx
                 print(f"message from Thymio: {message}")
-                if message == 2:
-                    print("**** Value 2 received ****")
-                elif message == 3:
-                    print("**** Value 3 received ****")
-                elif message == 4:
-                    print("**** Value 4 received ****")
-                elif message == 0:
-                    print("**** No one is around ****")
-
                 if sum(prox_values) > 20000:
                     break
 
