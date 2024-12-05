@@ -4,7 +4,7 @@ from ir_signal import IRsignal
 from tdmclient import ClientAsync
 import time
 import cv2
-from constants import LED_STATE_COLOR_MAP, SEEKER, AVOIDER
+from constants import AUTO_RESTART, LED_STATE_COLOR_MAP, SEEKER, AVOIDER
 import sys
 
 if __name__ == "__main__":
@@ -27,7 +27,12 @@ if __name__ == "__main__":
                 print("Initializing robot")
 
                 cap = cv2.VideoCapture(0)
-                robot = PhysicalRobot(node=node, capture=cap, robot_type=robot_type)
+                robot = PhysicalRobot(
+                    node=node,
+                    capture=cap,
+                    robot_type=robot_type,
+                    auto_restart=AUTO_RESTART,
+                )
 
                 print("Robot initialized")
                 try:

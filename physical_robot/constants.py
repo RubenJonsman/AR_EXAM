@@ -1,10 +1,8 @@
 V_MAX = 20
 MAX_WHEEL_SPEED = 300
 USE_VISUALIZATION = True
-DRAW_LIDAR = True
-DRAW_PARTICLES = True
-DRAW_ROBOT = True
-DRAW_FRUSTRUM = False
+# Turn on for the avoiders to automatically restart when caught
+AUTO_RESTART = False
 
 MAX_BACKUP = 10
 

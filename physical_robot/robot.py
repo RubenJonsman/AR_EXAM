@@ -1,5 +1,6 @@
 import random
 import torch
+import time
 
 from model import AvoidModel
 
@@ -29,7 +30,8 @@ from ir_signal import IRsignal
 
 
 class PhysicalRobot:
-    def __init__(self, node, capture, robot_type):
+    def __init__(self, node, capture, robot_type, auto_restart=False):
+        self.auto_restart = auto_restart
         self.node = node
         self.capture = capture
         self.type = robot_type  # 0 avoider or 1 seeker
@@ -101,8 +103,12 @@ class PhysicalRobot:
         if self.type == AVOIDER and self.state == CAUGHT_STATE:
             self.set_motor_speeds(0, 0)
             print("Caught! :(((")
-            exit(0)
-            return
+            if self.auto_restart:
+                time.sleep(10)
+                self.state = DEFAULT_STATE
+                return
+            else:
+                exit()
 
         # Floor sensor
         floor = self.floor_sensor.detect_color()
