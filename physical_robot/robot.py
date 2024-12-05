@@ -115,26 +115,27 @@ class PhysicalRobot:
             exit(0)
             return
 
+        # Floor sensor
+        floor = self.floor_sensor.detect_color()
+        if floor == SAFE:
+            self.state = SAFE_STATE
+        else:
+            self.state = DEFAULT_STATE
+
+        # IR signal
+        value = await self.ir_signal.get_ir_signal()
+        if self.type == AVOIDER and value == CAUGHT_STATE:
+            self.state = CAUGHT_STATE
+
+        if self.type == SEEKER:
+            self.seek_robot()
+        else:
+            self.avoid_robot()
+
         if self.prev_state != self.state:
             await self.ir_signal.initialize_thymio(
                 LED_STATE_COLOR_MAP[self.type, self.state]
             )
-
-        value = await self.ir_signal.get_ir_signal()
-        # if self.type == AVOIDER and value == CAUGHT_STATE:
-        #     self.state = CAUGHT_STATE
-        # floor = self.floor_sensor.detect_color()
-
-        # if floor == SAFE:
-        #     self.state = SAFE_STATE
-        # else:
-        #     self.state = DEFAULT_STATE
-
-        # if self.type == SEEKER:
-        #     self.seek_robot()
-        # else:
-        #     self.avoid_robot()
-
         self.prev_state = self.state
 
     def avoid_robot(self):
