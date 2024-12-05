@@ -1,3 +1,5 @@
+from constants import SEEKER, AVOIDER
+
 avoider_program = """
 # Variables must be at start
 var send_interval = 200  # time in milliseconds
@@ -72,13 +74,19 @@ class IRsignal:
 
     async def initialize_signal(self):
         try:
-            if self.robot_type == "seeker":
-                await self.node.compile(seeker_program)
-            elif self.robot_type == "avoider":
-                await self.node.compile(avoider_program)
+            if self.robot_type == SEEKER:
+                error = await self.node.compile(seeker_program)
+                if error is not None:
+                    print(f"Compilation error: {error['error_msg']}")
+            elif self.robot_type == AVOIDER:
+                error = await self.node.compile(avoider_program)
+                if error is not None:
+                    print(f"Compilation error: {error['error_msg']}")
             await self.node.run()
         except Exception as e:
             print(f"Error initializing IR signal: {e}")
 
-    def get_ir_signal(self):
-        return self.node.v.prox.comm.rx
+    async def get_ir_signal(self):
+        value = self.node.v.prox.comm.rx
+        print(value)
+        return value
