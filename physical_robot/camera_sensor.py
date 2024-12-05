@@ -28,7 +28,7 @@ class CameraSensor:
         flipped_frame = cv2.flip(frame, 1)
         # flip y
         flipped_frame = cv2.flip(flipped_frame, 0)
-        cv2.imwrite("./frame.jpg", flipped_frame)
+        # cv2.imwrite("./frame.jpg", flipped_frame)
 
         frame_width = flipped_frame.shape[0]
 
@@ -49,7 +49,7 @@ class CameraSensor:
         upper_color = upper_blue if self.type == SEEKER else upper_red
 
         mask = cv2.inRange(hsv, lower_color, upper_color)
-        cv2.imwrite("./mask.jpg", mask)
+        # cv2.imwrite("./mask.jpg", mask)
         blurred_mask = cv2.GaussianBlur(mask, (3, 3), 0)
         distance_to_wall = self.get_distance_and_angle_to_wall(blurred_mask)
         contours, _ = cv2.findContours(
@@ -80,7 +80,7 @@ class CameraSensor:
 
         if ball_count > 0:
             distance_to_robot = self.get_distance_to_robot_in_view(blurred_mask)
-            print(distance_to_robot)
+            # print(distance_to_robot)
 
             center_region_size = 150 * scale_factor
             center_region_center = 320 * scale_factor

@@ -57,13 +57,14 @@ Todo:
 
     - dev_senfloor.py
 
-  - [ ] Robot detect other robots
+  - [X] Robot detect other robots
 
     - [ ] Based on ir signal and approx sensors?
     - [ ] Implement 360 spin and remember direction of the highest area found
 
   - [ ] Robot detect other robots state
     - Based on ir signal and color?
+  - [ ] Update state based on infrared signal
 
 - Simulation
   - [x] Make map

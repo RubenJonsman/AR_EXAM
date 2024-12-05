@@ -13,7 +13,7 @@ timer.period[0] = send_interval
 # Set constant transmission
 onevent timer0
     prox.comm.tx = 2  # Continuously send 2
-    
+
 # Force update rx value in every timer tick
     if prox.comm.rx == 0 then
         signal_detected = 0
@@ -46,7 +46,7 @@ timer.period[0] = send_interval
 # Set constant transmission
 onevent timer0
     prox.comm.tx = 1 # Continuously send 1
-    
+
 # Force update rx value in every timer tick
     if prox.comm.rx == 0 then
         signal_detected = 0
@@ -64,12 +64,12 @@ onevent timer1
     timer.period[1] = 0
 """
 
+
 class IRsignal:
     def __init__(self, node, robot_type):
         self.robot_type = robot_type
         self.node = node
-        self.initialize_signal()  # Initialize on creation
-    
+
     async def initialize_signal(self):
         try:
             if self.robot_type == "seeker":
