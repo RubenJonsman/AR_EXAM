@@ -1,16 +1,13 @@
 import random
-import time
 import torch
 
 from model import AvoidModel
 
 # from avoid_robot_model import AvoidModel
 from constants import (
-    AVOIDER_COLOR,
     CAUGHT_STATE,
     DANGER,
     LED_STATE_COLOR_MAP,
-    MAX_BACKUP,
     MAX_WHEEL_SPEED,
     DEFAULT_STATE,
     SAFE,
