@@ -13,6 +13,7 @@ from constants import (
     SAFE,
     SAFE_STATE,
     AVOIDER,
+    SEEKER,
     SAFE,
     DANGER,
     WALL,
@@ -46,10 +47,14 @@ class PhysicalRobot:
 
 
         if self.type == AVOIDER:
+            self.tx_signal = 2
             model_path = "Store/model_111.pth"
             self.robot_model = AvoidModel(INPUT_SIZE, HIDDEN_SIZE)
             self.robot_model.load_state_dict(torch.load(model_path, weights_only=True))
             self.robot_model.eval()
+
+        elif self.type == SEEKER:
+            self.tx_signal = 1
 
 
     def set_motor_speeds(self, left_motor_speed, right_motor_speed):  # MODIFY
