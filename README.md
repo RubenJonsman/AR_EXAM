@@ -26,7 +26,7 @@ https://learnit.itu.dk/pluginfile.php/400034/mod_resource/content/1/tag-project.
 4. Connect through this:
 
 - ssh RGA2@RGA2.local
-- ssh RGA2@192.168.74.17
+- ssh RGA2@192.168.74.10
 
 ---
 
