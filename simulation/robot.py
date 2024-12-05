@@ -81,6 +81,11 @@ class DifferentialDriveRobot:
         self.time_survived = 0  # Track survival time
         self.penalty = 0  # Accumulate penalties
 
+
+        self.max_distance_to_robot = 0
+        self.min_distance_to_robot = float('inf')
+
+
     def fitness_function(self, training_time) -> float:
         self.fitness_counts += 1
 
@@ -134,7 +139,7 @@ class DifferentialDriveRobot:
         )
         omega = (self.wheel_radius * (left_wheel_velocity - right_wheel_velocity)) / (
             2 * self.axl_dist
-        )
+        ) 
 
         self.x += v_x * delta_time
         self.y += v_y * delta_time
@@ -225,8 +230,25 @@ class DifferentialDriveRobot:
             self.distance_to_wall = 1000
 
         self.distance_to_robot, nearest_robot = self.camera_sensor.get_distance_to_robot_in_view(robot_pose, other_robots)
+        
+        # print the max distance to robot and the min distance to robot
+        # Print the max distance to robot and the min distance to robot when the program stops
+        
+
+        if self.distance_to_robot is not None:
+
+            if self.distance_to_robot > self.max_distance_to_robot:
+                self.max_distance_to_robot = self.distance_to_robot
+            if self.distance_to_robot < self.min_distance_to_robot:
+                self.min_distance_to_robot = self.distance_to_robot
+
+        print(f"Max distance to robot: {self.max_distance_to_robot}")
+        print(f"Min distance to robot: {self.min_distance_to_robot}")
+
         if self.distance_to_robot is None:
             self.distance_to_robot = 1000
+        else:
+            print(self.distance_to_robot)
 
         self.floor_sensor.detect_color(robot_pose, environment)
         floor_color = self.floor_sensor.get_color()
@@ -241,6 +263,8 @@ class DifferentialDriveRobot:
         robot_found_bool = 0
         if robot_found is not None:
             robot_found_bool = 1
+
+        self.distance_to_wall = 10000000
         output = self.avoid_model.forward(left, right, center, robot_found_bool, floor_color, self.distance_to_wall, self.distance_to_robot)
         left_wheel, right_wheel = (output[0].item() * MAX_WHEEL_SPEED, output[1].item() * MAX_WHEEL_SPEED,)
         self.set_motor_speeds(left_wheel, right_wheel)

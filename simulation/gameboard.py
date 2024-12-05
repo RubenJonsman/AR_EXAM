@@ -87,9 +87,9 @@ class GameBoard:
             self.starting_positions = [
                 (SEEKER, WIDTH / 2, HEIGHT / 2),
                 (AVOIDER, WIDTH - offset, HEIGHT - offset),
-                (AVOIDER, 0 + offset, 0 + offset),
-                (AVOIDER, WIDTH - offset, 0 + offset),
-                (AVOIDER, 0 + offset, HEIGHT - offset),
+                # (AVOIDER, 0 + offset, 0 + offset),
+                # (AVOIDER, WIDTH - offset, 0 + offset),
+                # (AVOIDER, 0 + offset, HEIGHT - offset),
         ]
         else:
             self.starting_positions = [
@@ -149,7 +149,7 @@ class GameBoard:
                     # Load the robot model from file
                         model_path = "Store/model_111.pth"
                         robot_model = AvoidModel(INPUT_SIZE, HIDDEN_SIZE)
-                        robot_model.load_state_dict(torch.load(model_path))
+                        robot_model.load_state_dict(torch.load(model_path, weights_only=True))
                         robot_model.eval()
                     else:
                         robot_model = (models[model_index] if model_index < len(models) else None)
