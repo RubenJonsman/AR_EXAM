@@ -1,9 +1,9 @@
 V_MAX = 20
-MAX_WHEEL_SPEED = 2000
+MAX_WHEEL_SPEED = 900
 USE_VISUALIZATION = True
 
 # Turn on for the avoiders to automatically restart when caught
-AUTO_RESTART = True
+AUTO_RESTART = False
 
 MAX_BACKUP = 10
 

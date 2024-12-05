@@ -63,7 +63,7 @@ class PhysicalRobot:
     def receive_signal(self):
         self.rx_signal = self.proximity_sensor.get_proximity_signal()
 
-    def set_motor_speeds(self, left_motor_speed, right_motor_speed):  # MODIFY
+    def set_motor_speeds(self, left_motor_speed, right_motor_speed):
         self.node.v.motor.left.target = left_motor_speed
         self.node.v.motor.right.target = right_motor_speed
         self.node.flush()
@@ -83,6 +83,8 @@ class PhysicalRobot:
             return
 
         direction, _, _, _, _ = self.camera_sensor.detect()
+
+        print(direction)
 
         if direction is not None:
             left_speed = MAX_WHEEL_SPEED + direction * (MAX_WHEEL_SPEED // 2)
@@ -131,6 +133,14 @@ class PhysicalRobot:
             await self.ir_signal.initialize_thymio(
                 LED_STATE_COLOR_MAP[self.type, self.state]
             )
+
+        if self.state == SAFE_STATE and self.type == AVOIDER:
+            time.sleep(2)
+            self.set_motor_speeds(-900, -900)
+            time.sleep(2)
+            self.set_motor_speeds(-900, 900)
+            time.sleep(0.15)
+            self.set_motor_speeds(0, 0)
         self.prev_state = self.state
 
     def avoid_robot(self):
@@ -142,8 +152,6 @@ class PhysicalRobot:
             self.camera_sensor.detect()
         )
 
-        if robot_found:
-            print("Seeker detected")
         # self.distance_to_wall, nearest_wall = (self.camera_sensor.get_distance_and_angle_to_wall())
         if self.distance_to_wall is None:
             self.distance_to_wall = 1000
@@ -153,6 +161,13 @@ class PhysicalRobot:
             self.distance_to_robot = 1000
 
         floor_color = self.floor_sensor.detect_color()
+
+        if robot_found and floor_color == DANGER:
+            self.set_motor_speeds(-900, 900)
+            time.sleep(0.15)
+            self.set_motor_speeds(0, 0)
+            print("Seeker detected")
+
         left, right, center = 0, 0, 0
         if location == "left":
             left = 1

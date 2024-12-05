@@ -42,8 +42,10 @@ class CameraSensor:
         lower_red = np.array([158, 36, 210])
         upper_red = np.array([180, 255, 255])
 
-        lower_blue = np.array([0, 106, 233])
+        lower_blue = np.array([69, 109, 207])
         upper_blue = np.array([180, 255, 255])
+        # lower_blue = np.array([0, 106, 233])
+        # upper_blue = np.array([180, 255, 255])
 
         lower_color = lower_blue if self.type == SEEKER else lower_red
         upper_color = upper_blue if self.type == SEEKER else upper_red
@@ -61,20 +63,20 @@ class CameraSensor:
         for contour in contours:
             M = cv2.moments(contour)
             area = cv2.contourArea(contour)
-            # if area > 30:
-            # print("Area: " + str(area))
-            ball_count += 1
-            ball_detected = True
+            if area > 30:
+                # print("Area: " + str(area))
+                ball_count += 1
+                ball_detected = True
 
-            if M["m00"] != 0:
-                cx = int(M["m10"] / M["m00"])
-                cy = int(M["m01"] / M["m00"])
-                # self.positions.append([cx, cy])
+                if M["m00"] != 0:
+                    cx = int(M["m10"] / M["m00"])
+                    cy = int(M["m01"] / M["m00"])
+                    # self.positions.append([cx, cy])
 
             else:
                 print("Ignoring small area: " + str(area))
 
-        # print("i see " + str(ball_count) + " contours")
+        print("i see " + str(ball_count) + " contours")
         # contour_image = cv2.drawContours(blurred_mask, contours, -1, (0, 255, 0), 3)
         # cv2.imwrite("./contour_image.jpg", contour_image)
 
