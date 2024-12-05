@@ -11,7 +11,7 @@ class FloorColorSensor:
         left_sensor = self.node.v.prox.ground.delta[0]
         right_sensor = self.node.v.prox.ground.delta[1]
 
-        print(left_sensor, right_sensor)
+        # print(left_sensor, right_sensor)
 
         if left_sensor < 300 and right_sensor < 300:
             return WALL

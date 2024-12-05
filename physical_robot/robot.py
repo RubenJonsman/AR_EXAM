@@ -1,5 +1,7 @@
 import random
+import torch
 
+from model import AvoidModel
 # from avoid_robot_model import AvoidModel
 from constants import (
     AVOIDER_COLOR,
@@ -14,6 +16,8 @@ from constants import (
     SAFE,
     DANGER,
     WALL,
+    INPUT_SIZE,
+    HIDDEN_SIZE
 )
 from camera_sensor import CameraSensor
 
@@ -23,10 +27,10 @@ from led import LEDHandler
 
 
 class PhysicalRobot:
-    def __init__(self, node, capture):
+    def __init__(self, node, capture, robot_type):
         self.node = node
         self.capture = capture
-        self.type = type  # 0 avoider or 1 seeker
+        self.type = robot_type  # 0 avoider or 1 seeker
         self.state = DEFAULT_STATE  # 0 default, 1 safe, 2 caught
 
         self.floor_sensor = FloorColorSensor(node=node)
@@ -38,6 +42,14 @@ class PhysicalRobot:
         self.set_motor_speeds(-30, 30)
 
         self.iters_since_last_detection = 0
+
+
+        if self.type == AVOIDER:
+            model_path = "Store/model_111.pth"
+            self.robot_model = AvoidModel(INPUT_SIZE, HIDDEN_SIZE)
+            self.robot_model.load_state_dict(torch.load(model_path, weights_only=True))
+            self.robot_model.eval()
+
 
     def set_motor_speeds(self, left_motor_speed, right_motor_speed):  # MODIFY
         self.node.v.motor.left.target = left_motor_speed
@@ -76,7 +88,7 @@ class PhysicalRobot:
             return
         # TODO: Avoid other robots
 
-        direction = self.camera_sensor.detect()
+        direction, _, _ = self.camera_sensor.detect()
 
         print("Direction", direction)
 
@@ -85,8 +97,8 @@ class PhysicalRobot:
             left_speed = base_speed + direction * (MAX_WHEEL_SPEED - base_speed)
             right_speed = base_speed - direction * (MAX_WHEEL_SPEED - base_speed)
 
-            sf = 1
-
+            sf = 10
+            print(int(left_speed * sf), int(right_speed * sf))
             self.set_motor_speeds(int(left_speed * sf), int(right_speed * sf))
 
         elif self.iters_since_last_detection > 25:
@@ -97,4 +109,41 @@ class PhysicalRobot:
             self.iters_since_last_detection += 1
 
     def avoid_robot(self):
-        pass
+        if self.state == CAUGHT_STATE:
+            self.set_motor_speeds(0, 0)
+            return
+        
+
+        (_, robot_found, location, self.distance_to_robot, self.distance_to_wall) = self.camera_sensor.detect()
+        # self.distance_to_wall, nearest_wall = (self.camera_sensor.get_distance_and_angle_to_wall())
+        if self.distance_to_wall is None:
+            self.distance_to_wall = 1000
+
+        # self.distance_to_robot, nearest_robot = self.camera_sensor.get_distance_to_robot_in_view()
+        if self.distance_to_robot is None:
+            self.distance_to_robot = 1000
+
+        floor_color = self.floor_sensor.detect_color()
+        left, right, center = 0, 0, 0
+        if location == "left":
+            left = 1
+        elif location == "right":
+            right = 1
+        elif location == "center":
+            center = 1
+
+        robot_found_bool = 0
+        if robot_found:
+            robot_found_bool = 1
+
+        # self.distance_to_wall = 1000
+
+        floor_color = DANGER
+        print(f"Left: {left} Right: {right} Center: {center} Robot Found: {robot_found_bool} Floor Color: {floor_color} Distance to Wall: {self.distance_to_wall} Distance to Robot: {self.distance_to_robot}")
+        output = self.robot_model.forward(left, right, center, robot_found_bool, floor_color, self.distance_to_wall, self.distance_to_robot)
+        left_wheel, right_wheel = (output[0].item() * MAX_WHEEL_SPEED, output[1].item() * MAX_WHEEL_SPEED,)
+        print(left_wheel, right_wheel)
+        self.set_motor_speeds(round(left_wheel), round(right_wheel))
+        # self.set_motor_speeds(0,0)
+
+        
