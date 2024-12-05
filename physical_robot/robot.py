@@ -119,7 +119,7 @@ class PhysicalRobot:
 
         # IR signal
         value = await self.ir_signal.get_ir_signal()
-        if self.type == AVOIDER and value == CAUGHT_STATE:
+        if self.type == AVOIDER and value == CAUGHT_STATE and self.state != SAFE_STATE:
             self.state = CAUGHT_STATE
 
         if self.type == SEEKER:
@@ -134,7 +134,7 @@ class PhysicalRobot:
         self.prev_state = self.state
 
     def avoid_robot(self):
-        if self.state == CAUGHT_STATE:
+        if self.state == CAUGHT_STATE or self.state == SAFE_STATE:
             self.set_motor_speeds(0, 0)
             return
 
