@@ -37,7 +37,7 @@ if __name__ == "__main__":
                             robot.avoid_robot()
                             await client.sleep(0.025)
                             # time.sleep(0.5)
-                    except KeyboardInterrupt:
+                    except:
                         robot.set_motor_speeds(0, 0)
 
         client.run_async_program(prog)
