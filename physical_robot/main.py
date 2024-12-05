@@ -34,8 +34,7 @@ if __name__ == "__main__":
                     while True:
                         print("Robot loop")
                         await robot.run()
-                        time.sleep(1)
-                        # await client.sleep(0.025)
+                        await client.sleep(1 / 60)
                 except KeyboardInterrupt as e:
                     print(f"Error in main loop: {e}")
                     robot.set_motor_speeds(0, 0)
