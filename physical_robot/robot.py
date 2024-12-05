@@ -141,6 +141,9 @@ class PhysicalRobot:
         (_, robot_found, location, self.distance_to_robot, self.distance_to_wall) = (
             self.camera_sensor.detect()
         )
+
+        if robot_found:
+            print("Seeker detected")
         # self.distance_to_wall, nearest_wall = (self.camera_sensor.get_distance_and_angle_to_wall())
         if self.distance_to_wall is None:
             self.distance_to_wall = 1000
