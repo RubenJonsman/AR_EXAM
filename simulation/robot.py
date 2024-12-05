@@ -75,7 +75,7 @@ class DifferentialDriveRobot:
         self.compass = CompassSensor()
         self.odometry_weight = 0.0
         self.odometry_noise_level = 0.01
-        self.camera_sensor = CameraSensor(type=type, camera_range=CAMERA_RANGE)
+        self.camera_sensor = CameraSensor(camera_range=CAMERA_RANGE)
 
         self.floor_sensor = FloorColorSensor()
         self.back_up = 0  # counter for backing up
@@ -203,11 +203,13 @@ class DifferentialDriveRobot:
         self.floor_sensor.detect_color(environment=environment, robot_pose=robot_pose)
         color = self.floor_sensor.get_color()
 
-        if self.type == AVOIDER and (
-            robot_pose.x < (PADDING * 0.75)
-            or robot_pose.x > environment.width - (PADDING * 0.75)
-            or robot_pose.y < (PADDING * 0.75)
-            or robot_pose.y > environment.height - (PADDING * 0.75)
+        if (
+            color == WALL
+            and self.type == AVOIDER
+            and robot_pose.x < PADDING
+            or robot_pose.x > environment.width - PADDING
+            or robot_pose.y < PADDING
+            or robot_pose.y > environment.height - PADDING
         ):
             self.state = CAUGHT_STATE
             return
