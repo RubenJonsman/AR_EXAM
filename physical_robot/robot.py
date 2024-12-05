@@ -120,7 +120,7 @@ class PhysicalRobot:
                 LED_STATE_COLOR_MAP[self.type, self.state]
             )
 
-        # value = await self.ir_signal.get_ir_signal()
+        value = await self.ir_signal.get_ir_signal()
         # if self.type == AVOIDER and value == CAUGHT_STATE:
         #     self.state = CAUGHT_STATE
         # floor = self.floor_sensor.detect_color()
