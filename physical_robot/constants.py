@@ -57,8 +57,6 @@ WALL = 2
 DANGER = 0
 SAFE = 1
 
-PLAY_GAME = False
-
 # For training
 NUM_GENERATIONS = 100
 CONCURRENT_GAMES = 1
