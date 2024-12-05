@@ -1,4 +1,5 @@
 import random
+import time
 import torch
 
 from model import AvoidModel
@@ -61,6 +62,8 @@ class PhysicalRobot:
         self.node.v.motor.left.target = left_motor_speed
         self.node.v.motor.right.target = right_motor_speed
 
+        print("left: ", left_motor_speed, "right: ", right_motor_speed)
+
         self.node.flush()
 
     def update_robot_state_based_on_floor_color(self):
@@ -94,21 +97,27 @@ class PhysicalRobot:
             return
         # TODO: Avoid other robots
 
-        direction, _, _ = self.camera_sensor.detect()
+        if self.floor_sensor.detect_color() == WALL:
+            self.set_motor_speeds(-MAX_WHEEL_SPEED, -MAX_WHEEL_SPEED)
+            for _ in range(100):
+                pass
+            self.set_motor_speeds(-MAX_WHEEL_SPEED, MAX_WHEEL_SPEED)
+            for _ in range(100):
+                pass
+            return
 
-        print("Direction", direction)
+        direction, _, _, _, _ = self.camera_sensor.detect()
 
         if direction is not None:
-            base_speed = MAX_WHEEL_SPEED / 2
-            left_speed = base_speed + direction * (MAX_WHEEL_SPEED - base_speed)
-            right_speed = base_speed - direction * (MAX_WHEEL_SPEED - base_speed)
+            left_speed = MAX_WHEEL_SPEED + direction * (MAX_WHEEL_SPEED // 2)
+            right_speed = MAX_WHEEL_SPEED - direction * (MAX_WHEEL_SPEED // 2)
 
-            sf = 10
-            print(int(left_speed * sf), int(right_speed * sf))
-            self.set_motor_speeds(int(left_speed * sf), int(right_speed * sf))
+            self.set_motor_speeds(int(left_speed), int(right_speed))
 
         elif self.iters_since_last_detection > 25:
-            self.set_motor_speeds(30, -30)
+            left = random.randint(-MAX_WHEEL_SPEED,MAX_WHEEL_SPEED)
+            right = random.randint(-MAX_WHEEL_SPEED,MAX_WHEEL_SPEED)
+            self.set_motor_speeds(left, right)
             self.iters_since_last_detection = 0
 
         else:
