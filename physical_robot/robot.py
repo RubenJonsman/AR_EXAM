@@ -54,9 +54,6 @@ class PhysicalRobot:
             self.robot_model.load_state_dict(torch.load(model_path, weights_only=True))
             self.robot_model.eval()
 
-    # async def init_robot(self):
-    #     await self.ir_signal.initialize_thymio((0, 32, 0))
-
     async def update_color(self):
         color = LED_STATE_COLOR_MAP[self.type, self.state]
         await self.LED.change_led_color(color)
@@ -65,22 +62,14 @@ class PhysicalRobot:
         self.rx_signal = self.proximity_sensor.get_proximity_signal()
 
     def set_motor_speeds(self, left_motor_speed, right_motor_speed):  # MODIFY
-        return
         self.node.v.motor.left.target = left_motor_speed
         self.node.v.motor.right.target = right_motor_speed
-
-        # print("left: ", left_motor_speed, "right: ", right_motor_speed)
-
         self.node.flush()
 
     def seek_robot(self):
-        # self.set_motor_speeds(150, 300)
-        # return
-
         if self.state == CAUGHT_STATE:
             self.set_motor_speeds(0, 0)
             return
-        # TODO: Avoid other robots
 
         if self.floor_sensor.detect_color() == WALL:
             self.set_motor_speeds(-MAX_WHEEL_SPEED, -MAX_WHEEL_SPEED)
