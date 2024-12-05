@@ -32,7 +32,8 @@ class PhysicalRobot:
         self.capture = capture
         self.type = robot_type  # 0 avoider or 1 seeker
         self.state = DEFAULT_STATE  # 0 default, 1 safe, 2 caught
-
+        self.tx_signal = 0
+        self.rx_signal = 0
         self.floor_sensor = FloorColorSensor(node=node)
         self.proximity_sensor = ProximitySensor(node=node)
         self.camera_sensor = CameraSensor(capture=capture, type=self.type)
