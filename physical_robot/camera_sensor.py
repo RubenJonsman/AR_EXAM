@@ -10,7 +10,7 @@ class CameraSensor:
     def __init__(self, capture, type):
         self.capture = capture
         self.type = type
-        self.simulation_scaler = 8 
+        self.simulation_scaler = 8
 
     def detect(self):
         ret, frame = self.capture.read()
@@ -39,8 +39,14 @@ class CameraSensor:
         # Convert to HSV
         hsv = cv2.cvtColor(blurred_frame, cv2.COLOR_BGR2HSV)
 
-        lower_color = np.array([0, 106, 233])
-        upper_color = np.array([180, 255, 255])
+        lower_red = np.array([158, 36, 210])
+        upper_red = np.array([180, 255, 255])
+
+        lower_blue = np.array([0, 106, 233])
+        upper_blue = np.array([180, 255, 255])
+
+        lower_color = lower_blue if self.type == SEEKER else lower_red
+        upper_color = upper_blue if self.type == SEEKER else upper_red
 
         mask = cv2.inRange(hsv, lower_color, upper_color)
         cv2.imwrite("./mask.jpg", mask)
@@ -72,7 +78,6 @@ class CameraSensor:
         # contour_image = cv2.drawContours(blurred_mask, contours, -1, (0, 255, 0), 3)
         # cv2.imwrite("./contour_image.jpg", contour_image)
 
-
         if ball_count > 0:
             distance_to_robot = self.get_distance_to_robot_in_view(blurred_mask)
             print(distance_to_robot)
@@ -87,19 +92,18 @@ class CameraSensor:
                 relative_robot_position = "right"
             else:
                 relative_robot_position = "center"
-            
+
             # Calculate heading using the center of the ball
-            return (cx / frame_width) * 2 - 1, True, relative_robot_position, distance_to_robot, distance_to_wall
+            return (
+                (cx / frame_width) * 2 - 1,
+                True,
+                relative_robot_position,
+                distance_to_robot,
+                distance_to_wall,
+            )
         else:
             return None, False, None, None, None
         # if self.draw_contours:
-
-        if self.type == AVOIDER:
-            # TODO: Detect red
-            pass
-        elif self.type == SEEKER:
-            # TODO: Detect blue
-            pass
 
     def get_color(self, robot):
         return STATE_COLOR_MAP[robot.type, robot.state]
@@ -112,16 +116,16 @@ class CameraSensor:
             return None
 
         # Calculate the distance to the nearest wall
-        nearest_distance = float('inf')
+        nearest_distance = float("inf")
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
-            distance = y  # Assuming the y-coordinate represents the distance to the wall
+            distance = (
+                y  # Assuming the y-coordinate represents the distance to the wall
+            )
             if distance < nearest_distance:
                 nearest_distance = distance
 
         return nearest_distance
-        
-        
 
     def get_distance_to_robot_in_view(self, mask):
         # Assuming a known width of the robot in real life (in meters)
@@ -141,7 +145,3 @@ class CameraSensor:
         # Calculate the distance to the robot
         distance = ((KNOWN_ROBOT_WIDTH * FOCAL_LENGTH) / w) * self.simulation_scaler
         return distance
-
-
-
-        
