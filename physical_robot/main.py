@@ -19,7 +19,8 @@ if __name__ == "__main__":
             with await client.lock() as node:
                 await node.wait_for_variables({"prox.horizontal"})
                 cap = cv2.VideoCapture(0)
-                robot = await PhysicalRobot(node=node, capture=cap, robot_type=robot_type)
+                robot = PhysicalRobot(node=node, capture=cap, robot_type=robot_type)
+                await robot.init_robot()
                 if robot_type == SEEKER:
                     try:
                         while True:
