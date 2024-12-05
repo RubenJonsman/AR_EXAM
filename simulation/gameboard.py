@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 import pygame
 import random, math
-
+import torch
 from matplotlib import pyplot as plt
 from scipy.stats import linregress
 from shapely import LineString, Point
@@ -24,6 +24,9 @@ from constants import (
     SEEKER,
     WIDTH,
     HEIGHT,
+    PLAY_GAME,
+    HIDDEN_SIZE,
+    INPUT_SIZE
 )
 
 from avoid_robot_model import AvoidModel
@@ -42,7 +45,6 @@ class GameBoard:
         self.slope = None
         self.recent_means = None
         self.recent_episodes = None
-
         pygame.init()
 
         self.env = Environment(WIDTH, HEIGHT)
@@ -85,9 +87,9 @@ class GameBoard:
             self.starting_positions = [
                 (SEEKER, WIDTH / 2, HEIGHT / 2),
                 (AVOIDER, WIDTH - offset, HEIGHT - offset),
-                # (AVOIDER, 0 + offset, 0 + offset),
-                # (AVOIDER, WIDTH - offset, 0 + offset),
-                # (AVOIDER, 0 + offset, HEIGHT - offset),
+                (AVOIDER, 0 + offset, 0 + offset),
+                (AVOIDER, WIDTH - offset, 0 + offset),
+                (AVOIDER, 0 + offset, HEIGHT - offset),
         ]
         else:
             self.starting_positions = [
@@ -114,7 +116,7 @@ class GameBoard:
         # Collision notifier, that shows you if you run into a wall
         self.showEnd = True
 
-    def initialize_robots(self, models=None):
+    def initialize_robots(self, models=None, episode_count=0):
         """
         Initialize robots for each game.
         If models are provided, assign them to the robots.
@@ -122,21 +124,26 @@ class GameBoard:
         Parameters:
         - models (list): A list of models to assign to the robots. If None, robots are initialized without models.
         """
+
+        if episode_count > 100:
+            self.starting_positions = [
+            (SEEKER, WIDTH / 2, HEIGHT / 2),
+            (AVOIDER, random.randint(PADDING, WIDTH-PADDING), random.randint(PADDING, HEIGHT-PADDING)),
+            (AVOIDER, random.randint(PADDING, WIDTH-PADDING), random.randint(PADDING, HEIGHT-PADDING)),
+            (AVOIDER, random.randint(PADDING, WIDTH-PADDING), random.randint(PADDING, HEIGHT-PADDING)),
+            (AVOIDER, random.randint(PADDING, WIDTH-PADDING), random.randint(PADDING, HEIGHT-PADDING)),
+        ]
+            
         robot_id = 0
         self.gamesRobots: List[DifferentialDriveRobot] = []  # Initialize the main list
-        models = (
-            models or [None] * self.population_size
-        )  # Default to None if no models provided
+        models = (models or [None] * self.population_size)  # Default to None if no models provided
         model_index = 0  # Track the index in the models list
 
         for _ in range(self.games):  # Loop over the number of games
             game_robots = []  # List for robots in the current game
-            for (
-                r_type,
-                x,
-                y,
-            ) in self.starting_positions:  # Loop over the starting positions
-                angle_to_center = math.atan2((HEIGHT / 2) - y, (WIDTH / 2) - x)
+            for (r_type, x, y) in self.starting_positions:  # Loop over the starting positions
+                angle_in_degrees = random.randint(0, 360)
+                angle_in_radians = math.radians(angle_in_degrees)
                 if r_type != SEEKER:
                     if PLAY_GAME:
                     # Load the robot model from file
@@ -152,21 +159,11 @@ class GameBoard:
                 else:
                     angle_in_degrees = random.randint(0, 360)
                     angle_in_radians = math.radians(angle_in_degrees)
-                    robot = DifferentialDriveRobot(
-                        x,
-                        y,
-                        angle_in_radians,
-                        "thymio_small.png",
-                        type=r_type,
-                        id=robot_id,
-                        model_state=None,
-                    )
-
+                    robot = DifferentialDriveRobot(x, y, angle_in_radians, "thymio_small.png", type=r_type, id=robot_id, model_state=None)
+                
                 game_robots.append(robot)  # Add robot to the current game's list
                 robot_id += 1  # Increment the unique ID
-            self.gamesRobots.append(
-                game_robots
-            )  # Add the game's robots to the main list
+            self.gamesRobots.append(game_robots)  # Add the game's robots to the main list
 
     def update_trend_line(self):
         """
@@ -201,96 +198,110 @@ class GameBoard:
             current_time = pygame.time.get_ticks()
 
             # Increase training time as episode count increases, limit to maximum of 1 minute
-            self.trainingTime = min(EPISODE_TIME * 1000 + episode_count * 10, 60000)
-            if (current_time - self.episode_start_time) >= self.trainingTime:
-                print(f"training time at {self.trainingTime / 1000} secs")
+            if PLAY_GAME:
+                self.trainingTime = 60000
+            else:
+                self.trainingTime = min(EPISODE_TIME * 1000 + episode_count * 100, 60000)
+                if (current_time - self.episode_start_time) >= self.trainingTime:
+                    print(f"training time at {self.trainingTime / 1000} secs")
 
-                # Calculate mean, min, max fitness values
+                    # Calculate mean, min, max fitness values
 
-                fitness_scored_list = list(self.fitness_scores.values())
-                robot_id_list = list(self.fitness_scores.keys())
+                    fitness_scored_list = list(self.fitness_scores.values())
+                    robot_id_list = list(self.fitness_scores.keys())
 
-                print("fitness scores", fitness_scored_list)
+                    print("fitness scores", fitness_scored_list)
 
-                mean_fitness = np.mean(fitness_scored_list)
-                min_fitness = np.min(fitness_scored_list)
-                max_fitness = np.max(fitness_scored_list)
+                    mean_fitness = np.mean(fitness_scored_list)
+                    min_fitness = np.min(fitness_scored_list)
+                    max_fitness = np.max(fitness_scored_list)
 
-                # Update live plot data
-                self.episodes.append(episode_count)
-                self.mean_fitness_values.append(mean_fitness)
-                self.min_fitness_values.append(min_fitness)
-                self.max_fitness_values.append(max_fitness)
+                    # Update live plot data
+                    self.episodes.append(episode_count)
+                    self.mean_fitness_values.append(mean_fitness)
+                    self.min_fitness_values.append(min_fitness)
+                    self.max_fitness_values.append(max_fitness)
 
-                self.mean_line.set_xdata(self.episodes)
-                self.mean_line.set_ydata(self.mean_fitness_values)
-                self.min_line.set_xdata(self.episodes)
-                self.min_line.set_ydata(self.min_fitness_values)
-                self.max_line.set_xdata(self.episodes)
-                self.max_line.set_ydata(self.max_fitness_values)
+                    self.mean_line.set_xdata(self.episodes)
+                    self.mean_line.set_ydata(self.mean_fitness_values)
+                    self.min_line.set_xdata(self.episodes)
+                    self.min_line.set_ydata(self.min_fitness_values)
+                    self.max_line.set_xdata(self.episodes)
+                    self.max_line.set_ydata(self.max_fitness_values)
 
-                # Update trend line for the last 5 episodes
-                self.update_trend_line()
+                    # Update trend line for the last 5 episodes
+                    self.update_trend_line()
 
-                # Rescale axes based on data
-                self.ax.relim()
-                self.ax.autoscale_view()
-                plt.draw()
-                plt.pause(0.01)  # Pause to update the figure
+                    # Rescale axes based on data
+                    self.ax.relim()
+                    self.ax.autoscale_view()
+                    plt.draw()
+                    plt.pause(0.01)  # Pause to update the figure
 
-                episode_count += 1
-                robot_scores = {}
+                    episode_count += 1
+                    robot_scores = {}
 
-                sorted_indices = np.argsort(fitness_scored_list)
+                    sorted_indices = np.argsort(fitness_scored_list)
 
-                rank_weights = np.zeros(self.population_size)
-                rank = 2
-                for i in sorted_indices:
-                    rank_weights[i] = 1 / rank
-                    rank += 1
-                rank_weights /= np.sum(rank_weights)
-                top_n_indices = sorted_indices[-self.TOP_N :]
-                all_models = np.array(
-                    [
-                        model.avoid_model
-                        for model in np.array(self.gamesRobots).flatten()
-                        if model.avoid_model is not None
-                    ]
-                )
-                top_n_models = list(all_models[top_n_indices])
-                rest_models = self.population_size - self.TOP_N
-                new_models = top_n_models
+                    rank_weights = np.zeros(self.population_size)
+                    rank = 2
+                    for i in sorted_indices:
+                        rank_weights[i] = 1 / rank
+                        rank += 1
+                    rank_weights /= np.sum(rank_weights)
+                    top_n_indices = sorted_indices[-self.TOP_N :]
+                    all_models = np.array(
+                        [
+                            model.avoid_model
+                            for model in np.array(self.gamesRobots).flatten()
+                            if model.avoid_model is not None
+                        ]
+                    )
+                    top_n_models = list(all_models[top_n_indices])
+                    rest_models = self.population_size - self.TOP_N
+                    new_models = top_n_models
 
-                i = 0
-                while i < rest_models:
-                    two_robots = np.random.choice(all_models, size=2, p=rank_weights)
-                    robot1_model = two_robots[0]
-                    robot2_model = two_robots[1]
-                    new_robot_1 = robot1_model.crossover(robot2_model)
-                    new_robot_2 = robot2_model.crossover(robot1_model)
+                    i = 0
+                    while i < rest_models:
+                        two_robots = np.random.choice(all_models, size=2, p=rank_weights)
+                        robot1_model = two_robots[0]
+                        robot2_model = two_robots[1]
+                        new_robot_1 = robot1_model.crossover(robot2_model)
+                        new_robot_2 = robot2_model.crossover(robot1_model)
 
-                    new_models.append(new_robot_1)
-                    new_models.append(new_robot_2)
+                        new_models.append(new_robot_1)
+                        new_models.append(new_robot_2)
 
-                    i += 2
+                        i += 2
 
-                for model in new_models:
-                    model.mutate()
+                    for model in new_models:
+                        model.mutate()
 
-                # robot_index = 0
-                # # Reassign models to the existing robots
-                # for model in np.array(self.gamesRobots).flatten():
-                #     if model.avoid_model is not None:
-                #         model.avoid_model = new_models[robot_index]
-                #         robot_index += 1
-                #         print(f"Updating model for {robot_index}")
+                    # robot_index = 0
+                    # # Reassign models to the existing robots
+                    # for model in np.array(self.gamesRobots).flatten():
+                    #     if model.avoid_model is not None:
+                    #         model.avoid_model = new_models[robot_index]
+                    #         robot_index += 1
+                    #         print(f"Updating model for {robot_index}")
+                    import os
+                    if not os.path.exists("models"):
+                        os.makedirs("models")
+                    
+                    
+                    torch.save(top_n_models[0].state_dict(), f"models/model_{episode_count}.pth")
 
-                self.episode_start_time = current_time
-                self.initialize_robots(new_models)
-                self.fitness_scores = defaultdict(int)
-                for robot in np.array(self.gamesRobots).flatten():
-                    if robot.avoid_model is not None:
-                        robot.time_survived = 0
+                    model_files = sorted(os.listdir("models"), key=lambda x: int(x.split('_')[1].split('.')[0]))
+                    if len(model_files) > 5:
+                        for file in model_files[:-5]:
+                            os.remove(f"models/{file}")
+
+                    self.episode_start_time = current_time
+                    self.initialize_robots(new_models, episode_count)
+                    self.fitness_scores = defaultdict(int)
+                    for robot in np.array(self.gamesRobots).flatten():
+                        if robot.avoid_model is not None:
+                            robot.time_survived = 0
 
             # Calculate timestep
             time_step = (pygame.time.get_ticks() - self.last_time) / 1000

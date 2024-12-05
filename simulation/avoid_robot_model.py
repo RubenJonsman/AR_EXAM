@@ -14,8 +14,8 @@ class AvoidModel(nn.Module):
     self.output_layer = nn.Linear(hidden_size, 2) # two motors
 
   # def forward(self, left, right, center, robot_found, floor_color):
-  def forward(self, left, right, center, robot_found, floor_color, distance_to_wall):
-      inp = self.input_layer(torch.Tensor([left, right, center, robot_found, floor_color, distance_to_wall]).float())
+  def forward(self, left, right, center, robot_found, floor_color, distance_to_wall, distance_to_robot):
+      inp = self.input_layer(torch.Tensor([left, right, center, robot_found, floor_color, distance_to_wall, distance_to_robot]).float())
     #   act = torch.nn.functional.tanh(inp)
 
     #   hid = self.hidden_layer(act)

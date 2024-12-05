@@ -76,15 +76,10 @@ class DifferentialDriveRobot:
         self.odometry_noise_level = 0.01
         self.camera_sensor = CameraSensor(camera_range=CAMERA_RANGE)
 
-        self.floor_sensor = FloorColorSensor(self.node)
+        self.floor_sensor = FloorColorSensor()
         self.back_up = 0  # counter for backing up
         self.time_survived = 0  # Track survival time
         self.penalty = 0  # Accumulate penalties
-
-
-        self.max_distance_to_robot = 0
-        self.min_distance_to_robot = float('inf')
-
 
     def fitness_function(self, training_time) -> float:
         self.fitness_counts += 1
@@ -97,16 +92,22 @@ class DifferentialDriveRobot:
             self.time_survived / training_time
         ) * max_possible_reward  # Normalize survival time by total possible time
 
-        # Penalty for being caught
-        if self.state == CAUGHT_STATE:
-            reward -= 5000  # Large penalty for being caught
-
         # Penalty for hitting a wall
         if self.floor_sensor.get_color() == WALL:
-            reward = -10000  # Smaller penalty for hitting a wall
+            reward = -25  # Smaller penalty for hitting a wall
+        
+        # Penalty for being caught
+        elif self.state == CAUGHT_STATE:
+            reward -= 100  # Large penalty for being caught
 
-        # if abs(self.left_motor_speed - self.right_motor_speed) > 0.5:# and (abs(left_motor_speed) + abs(right_motor_speed)) > 0.2:
-        #     reward -= 100  # Penalize spinning
+        # Penalty for having differences in motor speeds 
+        reward -= abs(self.left_motor_speed - self.right_motor_speed) * 0.005 # 0.001
+
+        # Reward for distance moved
+        if hasattr(self, 'last_position'):
+            distance_moved = math.sqrt((self.x - self.last_position[0]) ** 2 + (self.y - self.last_position[1]) ** 2)
+            reward += distance_moved * 1 # Reward for distance moved
+        self.last_position = (self.x, self.y)
 
         return reward
 
@@ -133,7 +134,7 @@ class DifferentialDriveRobot:
         )
         omega = (self.wheel_radius * (left_wheel_velocity - right_wheel_velocity)) / (
             2 * self.axl_dist
-        ) 
+        )
 
         self.x += v_x * delta_time
         self.y += v_y * delta_time
@@ -218,37 +219,14 @@ class DifferentialDriveRobot:
 
     def avoid_robot_model(self, other_robots, environment, training_time):
         robot_pose = self.get_robot_position()
-        (robot_found, location) = self.camera_sensor.detect(
-            robot_pose, other_robots, SEEKER_COLOR
-        )
-        self.distance_to_wall, nearest_wall = (
-            self.camera_sensor.get_distance_and_angle_to_wall(
-                robot_pose, environment.walls
-            )
-        )
+        (robot_found, location) = self.camera_sensor.detect(robot_pose, other_robots, SEEKER_COLOR)
+        self.distance_to_wall, nearest_wall = (self.camera_sensor.get_distance_and_angle_to_wall(robot_pose, environment.walls))
         if self.distance_to_wall is None:
             self.distance_to_wall = 1000
 
         self.distance_to_robot, nearest_robot = self.camera_sensor.get_distance_to_robot_in_view(robot_pose, other_robots)
-        
-        # print the max distance to robot and the min distance to robot
-        # Print the max distance to robot and the min distance to robot when the program stops
-        
-
-        if self.distance_to_robot is not None:
-
-            if self.distance_to_robot > self.max_distance_to_robot:
-                self.max_distance_to_robot = self.distance_to_robot
-            if self.distance_to_robot < self.min_distance_to_robot:
-                self.min_distance_to_robot = self.distance_to_robot
-
-        print(f"Max distance to robot: {self.max_distance_to_robot}")
-        print(f"Min distance to robot: {self.min_distance_to_robot}")
-
         if self.distance_to_robot is None:
             self.distance_to_robot = 1000
-        else:
-            print(self.distance_to_robot)
 
         self.floor_sensor.detect_color(robot_pose, environment)
         floor_color = self.floor_sensor.get_color()
@@ -263,15 +241,13 @@ class DifferentialDriveRobot:
         robot_found_bool = 0
         if robot_found is not None:
             robot_found_bool = 1
-
-        self.distance_to_wall = 10000000
         output = self.avoid_model.forward(left, right, center, robot_found_bool, floor_color, self.distance_to_wall, self.distance_to_robot)
         left_wheel, right_wheel = (output[0].item() * MAX_WHEEL_SPEED, output[1].item() * MAX_WHEEL_SPEED,)
         self.set_motor_speeds(left_wheel, right_wheel)
 
         reward = self.fitness_function(training_time)
         return reward
-
+        
     def avoid_robot(self, other_robots, environment):
         turn_speed = MAX_WHEEL_SPEED / 5
         # (robot_found, location) = self.is_there_a_robot(*self.get_robot_position())
