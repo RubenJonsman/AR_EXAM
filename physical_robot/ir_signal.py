@@ -106,5 +106,4 @@ class IRsignal:
     async def get_ir_signal(self):
         self.node.flush()
         value = self.node.v.prox.comm.rx
-        print(value)
         return value

@@ -37,7 +37,6 @@ if __name__ == "__main__":
                 print("Robot initialized")
                 try:
                     while True:
-                        print("Robot loop")
                         await robot.run()
                         await client.sleep(1 / 60)
                 except KeyboardInterrupt as e:
