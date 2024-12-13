@@ -106,7 +106,7 @@ class DifferentialDriveRobot:
         # Reward for distance moved
         if hasattr(self, 'last_position'):
             distance_moved = math.sqrt((self.x - self.last_position[0]) ** 2 + (self.y - self.last_position[1]) ** 2)
-            reward += distance_moved * 1 # Reward for distance moved
+            reward += distance_moved * 10 # Reward for distance moved
         self.last_position = (self.x, self.y)
 
         return reward

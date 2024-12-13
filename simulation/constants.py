@@ -55,7 +55,7 @@ SAFE = 1
 WALL = 2
 REFLECTIVE_SILVER = 3
 
-PLAY_GAME = True
+PLAY_GAME = False
 
 
 # For training

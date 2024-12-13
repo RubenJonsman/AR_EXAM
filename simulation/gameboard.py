@@ -1,4 +1,6 @@
 from collections import defaultdict
+import os
+import time
 from typing import List
 
 import numpy as np
@@ -46,6 +48,8 @@ class GameBoard:
         self.recent_means = None
         self.recent_episodes = None
         pygame.init()
+        # Move the Pygame window to avoid overlap with matplotlib windows
+        os.environ['SDL_VIDEO_WINDOW_POS'] = "-2000,300"
 
         self.env = Environment(WIDTH, HEIGHT)
         self.games = CONCURRENT_GAMES
@@ -56,10 +60,18 @@ class GameBoard:
 
         self.mean_fitness_history = {}  # Stores mean fitness over time for visualization
         plt.ion()  # Enable interactive mode for live-updating
+
+        # Create first figure for fitness over time
         self.fig, self.ax = plt.subplots()
+        self.fig.canvas.manager.window.move(-700, 100)  # Move the first figure window
         self.ax.set_title("Fitness Over Time")
         self.ax.set_xlabel("Episode")
         self.ax.set_ylabel("Fitness")
+        # Despline top and right spline
+        self.ax.spines['top'].set_visible(False)
+        self.ax.spines['right'].set_visible(False)
+        self.ax.grid()  # Add grid lines
+
         (self.mean_line,) = self.ax.plot(
             [], [], "b-", label="Mean Fitness"
         )  # Mean fitness line
@@ -81,6 +93,41 @@ class GameBoard:
         ) = [], [], [], []  # Lists to store data for plotting
         self.ax.legend()  # Show legend for lines
 
+        # Create second figure for survival time over time
+        self.fig2, self.ax2 = plt.subplots()
+        self.fig2.canvas.manager.window.move(-700, 700)  # Move the second figure window
+        self.ax2.set_title("Survival Time Over Time")
+        self.ax2.set_xlabel("Episode")
+        self.ax2.set_ylabel("Survival Time")
+        # Despline top and right spline
+        self.ax2.spines['top'].set_visible(False)
+        self.ax2.spines['right'].set_visible(False)
+        self.ax2.grid()  # Add grid lines
+
+         
+        (self.mean_line_surival,) = self.ax2.plot(
+            [], [], "b-", label="Mean Survival Time"
+        )  # Mean fitness line
+        (self.min_line_survival,) = self.ax2.plot(
+            [], [], "g-", label="Min Survival Time"
+        )  # Min fitness line
+        (self.max_line_survival,) = self.ax2.plot(
+            [], [], "r-", label="Max Survival Time"
+        )  # Max fitness line
+        # (self.trend_line_survival,) = self.ax2.plot(
+        #     [], [], "k--", label="5-episode Survival Time Trend"
+        # )  # Trend line for the last 5 episodes
+
+        (
+            self.episodes2,
+            self.mean_survival_time_values,
+            self.min_survival_time_values,
+            self.max_survival_time_values,
+        ) = [], [], [], []  # Lists to store data for plotting
+        self.ax2.legend()  # Show legend for lines
+
+
+
         offset = 20 + PADDING
         offset = 100 + PADDING
         if PLAY_GAME:
@@ -90,14 +137,22 @@ class GameBoard:
                 (AVOIDER, 0 + offset, 0 + offset),
                 (AVOIDER, WIDTH - offset, 0 + offset),
                 (AVOIDER, 0 + offset, HEIGHT - offset),
-        ]
+            ]
         else:
+            # self.starting_positions = [
+            #     (SEEKER, WIDTH / 2, HEIGHT / 2),
+            #     (AVOIDER, WIDTH / 2 + offset, HEIGHT / 2),
+            #     (AVOIDER, WIDTH / 2 + offset, HEIGHT / 2),
+            #     (AVOIDER, WIDTH / 2 + offset, HEIGHT / 2),
+            #     (AVOIDER, WIDTH / 2 + offset, HEIGHT / 2),
+            # ]
+            offset = 50 + PADDING
             self.starting_positions = [
                 (SEEKER, WIDTH / 2, HEIGHT / 2),
-                (AVOIDER, WIDTH / 2 + offset, HEIGHT / 2),
-                (AVOIDER, WIDTH / 2 + offset, HEIGHT / 2),
-                (AVOIDER, WIDTH / 2 + offset, HEIGHT / 2),
-                (AVOIDER, WIDTH / 2 + offset, HEIGHT / 2),
+                (AVOIDER, WIDTH - offset, HEIGHT - offset),
+                (AVOIDER, 0 + offset, 0 + offset),
+                (AVOIDER, WIDTH - offset, 0 + offset),
+                (AVOIDER, 0 + offset, HEIGHT - offset),
             ]
 
         # spawn robots in the corners
@@ -187,6 +242,7 @@ class GameBoard:
 
     def visualize(self):
         # Game loop
+        # time_start = time.time()
         running = True
         episode_count = 0  # Track episode count separately
         self.episode_start_time = pygame.time.get_ticks()
@@ -200,6 +256,15 @@ class GameBoard:
             # Increase training time as episode count increases, limit to maximum of 1 minute
             if PLAY_GAME:
                 self.trainingTime = 60000
+            elif episode_count > 250:
+                count = 1
+                while os.path.exists(f"experiments/fitness_over_time_{count}.pdf"):
+                    count += 1
+                # plt.savefig(f"experiments/fitness_over_time_{count}.pdf")
+                # plt.savefig(f"experiments/survival_time_{count}.pdf")
+                self.fig.savefig(f"experiments/fitness_over_time_{count}.pdf")
+                self.fig2.savefig(f"experiments/survival_time_{count}.pdf")
+                return
             else:
                 self.trainingTime = min(EPISODE_TIME * 1000 + episode_count * 100, 60000)
                 if (current_time - self.episode_start_time) >= self.trainingTime:
@@ -228,6 +293,41 @@ class GameBoard:
                     self.min_line.set_ydata(self.min_fitness_values)
                     self.max_line.set_xdata(self.episodes)
                     self.max_line.set_ydata(self.max_fitness_values)
+
+
+                    survival_time_scores = [robot.time_survived for robot in np.array(self.gamesRobots).flatten() if robot.type == AVOIDER]
+                    max_possible_survival_time = self.trainingTime / 1000
+                    normalized_survival_time_scores = [score / max_possible_survival_time for score in survival_time_scores]
+                    print("normalized survival time scores", normalized_survival_time_scores)
+                    mean_survival_time = np.mean(normalized_survival_time_scores)
+                    min_survival_time = np.min(normalized_survival_time_scores)
+                    max_survival_time = np.max(normalized_survival_time_scores)
+
+                    print(f" mean normalized survival time: {mean_survival_time}, min normalized survival time: {min_survival_time}, max normalized survival time: {max_survival_time}")
+                    
+                    # print("survival time scores", survival_time_scores)
+                    # mean_survival_time = np.mean(survival_time_scores)
+                    # min_survival_time = np.min(survival_time_scores)
+                    # max_survival_time = np.max(survival_time_scores)
+                    # print(f" mean survival time: {mean_survival_time}, min survival time: {min_survival_time}, max survival time: {max_survival_time}")
+
+                    # Update live plot data
+                    self.episodes2.append(episode_count)
+                    self.mean_survival_time_values.append(mean_survival_time)
+                    self.min_survival_time_values.append(min_survival_time)
+                    self.max_survival_time_values.append(max_survival_time)
+
+                    self.mean_line_surival.set_xdata(self.episodes2)
+                    self.mean_line_surival.set_ydata(self.mean_survival_time_values)
+                    self.min_line_survival.set_xdata(self.episodes2)
+                    self.min_line_survival.set_ydata(self.min_survival_time_values)
+                    self.max_line_survival.set_xdata(self.episodes2)
+                    self.max_line_survival.set_ydata(self.max_survival_time_values)
+                    
+                    self.ax2.relim()
+                    self.ax2.autoscale_view()
+
+
 
                     # Update trend line for the last 5 episodes
                     self.update_trend_line()
@@ -292,9 +392,9 @@ class GameBoard:
                     torch.save(top_n_models[0].state_dict(), f"models/model_{episode_count}.pth")
 
                     model_files = sorted(os.listdir("models"), key=lambda x: int(x.split('_')[1].split('.')[0]))
-                    if len(model_files) > 5:
-                        for file in model_files[:-5]:
-                            os.remove(f"models/{file}")
+                    # if len(model_files) > 5:
+                    #     for file in model_files[:-5]:
+                    #         os.remove(f"models/{file}")
 
                     self.episode_start_time = current_time
                     self.initialize_robots(new_models, episode_count)
@@ -338,6 +438,19 @@ class GameBoard:
                     # lidar_scans, _intersect_points = self.lidar.generate_scans(robot_pose, self.env.get_environment())
 
                     r.update_robot_state_based_on_floor_color(self.env, robot_pose)
+                    # if (time.time() - time_start) > 60:
+                    #     time_stop = time.time()
+                    #     print(f"Robot {r.id} caught at {time_stop - time_start} seconds", time_stop, time_start)
+
+
+                    #     plt.close(self.fig)  # Close the matplotlib window
+                    #     return 60
+                        
+                    # if r.state == CAUGHT_STATE:
+                    #     time_stop = time.time()
+                    #     print(f"Robot {r.id} caught at {time_stop - time_start} seconds", time_stop, time_start)
+                    #     plt.close(self.fig)  # Close the matplotlib window
+                    #     return time_stop - time_start
 
                 if self.USE_VISUALIZATION:
                     self.screen.fill((0, 0, 0))
