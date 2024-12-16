@@ -1,10 +1,7 @@
-from utils.led_change import change_color
 from robot import PhysicalRobot
-from ir_signal import IRsignal
 from tdmclient import ClientAsync
-import time
 import cv2
-from constants import AUTO_RESTART, LED_STATE_COLOR_MAP, SEEKER, AVOIDER
+from constants import AUTO_RESTART, SEEKER, AVOIDER
 import sys
 
 if __name__ == "__main__":

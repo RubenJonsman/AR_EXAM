@@ -1,4 +1,4 @@
-from constants import AVOIDER, SEEKER, STATE_COLOR_MAP
+from constants import SEEKER, STATE_COLOR_MAP
 import numpy as np
 import cv2
 
