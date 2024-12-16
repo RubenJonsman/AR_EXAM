@@ -25,8 +25,7 @@ from camera_sensor import CameraSensor
 
 from floor_color_sensor import FloorColorSensor
 from proximity_sensor import ProximitySensor
-from led import LEDHandler
-from ir_signal import IRsignal
+from thymio_aseba import ThymioAseba
 
 
 class PhysicalRobot:
@@ -42,8 +41,7 @@ class PhysicalRobot:
         self.floor_sensor = FloorColorSensor(node=node)
         self.proximity_sensor = ProximitySensor(node=node)
         self.camera_sensor = CameraSensor(capture=capture, type=self.type)
-        self.LED = LEDHandler(node=node)
-        self.ir_signal = IRsignal(node=node, robot_type=self.type)
+        self.ir_signal = ThymioAseba(node=node, robot_type=self.type)
 
         self.back_up = 0  # counter for backing up
         self.set_motor_speeds(-30, 30)
@@ -55,13 +53,6 @@ class PhysicalRobot:
             self.robot_model = AvoidModel(INPUT_SIZE, HIDDEN_SIZE)
             self.robot_model.load_state_dict(torch.load(model_path, weights_only=True))
             self.robot_model.eval()
-
-    async def update_color(self):
-        color = LED_STATE_COLOR_MAP[self.type, self.state]
-        await self.LED.change_led_color(color)
-
-    def receive_signal(self):
-        self.rx_signal = self.proximity_sensor.get_proximity_signal()
 
     def set_motor_speeds(self, left_motor_speed, right_motor_speed):
         self.node.v.motor.left.target = left_motor_speed

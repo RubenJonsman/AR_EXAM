@@ -80,7 +80,7 @@ onevent timer1
 """
 
 
-class IRsignal:
+class ThymioAseba:
     def __init__(self, node, robot_type):
         self.robot_type = robot_type
         self.node = node
